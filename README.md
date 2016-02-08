@@ -117,6 +117,19 @@ deploying.
 deployment it will be available at the URL
 "my_randomization.appspot.com".
 
+### Customization
+
+You can perform any of these simple customizations:
+
+* Replace the file `stylesheets/logo.png` with a PNG containing your
+  organization's logo, it will then be displayed on the landing page.
+
+* Add a `stylesheets/favicon.ico` [icon
+  file](https://en.wikipedia.org/wiki/ICO_(file_format)) which will be
+  displayed on the browser tab.
+
+* Edit the text in the `information_page.html` file however you like.
+
 ### Development and bug reports
 
 The project is hosted at https://github.com/kshedden/randomization.
