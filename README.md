@@ -8,6 +8,41 @@ Subjects are assigned randomly to treatment groups, but the assignment
 probabilities are adjusted to promote balance with respect to
 confounding factors.
 
+__Example__: Suppose we are conducting a trial aiming to compare three
+approaches to math tutoring.  The subjects take a pre-test before
+beginning the study, and the possible scores are low, medium, and
+high.  The following assignments would be considered *unbalanced* with
+respect to the pre-test scores:
+
+| Treatment | Low   | Medium | High |
+|-----------|-------|--------|------|
+| A         |  11   | 23     |  17  |
+| B         |  15   | 16     |  10  |
+| C         |  13   | 12     |  27  |
+
+In the situation illustrated by this table, a simple comparison of
+post-test scores could be biased.  For example, we might expect
+treatment C to do better than treatment A, since stronger students
+were enrolled in treatment C compared to treatment A.  This apparent
+treatment effect of method C may not have anything to do with the
+treatment itself.
+
+Since the treatment assignments are partially random, we do not obtain
+perfect balance when using the minimization algorithm.  However the
+results will be approximately balanced with high probability.  For
+example, we might obtain the following:
+
+| Treatment | Low   | Medium | High |
+|-----------|-------|--------|------|
+| A         |  14   | 17     |  16  |
+| B         |  18   | 16     |  18  |
+| C         |  19   | 17     |  20  |
+
+
+The randomization tool will ensure that within
+each score band on the pre-test (e.g. low, medium high), the relative
+numbers of people in each treatment arm are similar.
+
 Some features of the randomization tool are:
 
 * Hosted using Google Appengine, typical usage on a standard Google
@@ -18,8 +53,9 @@ Some features of the randomization tool are:
 
 * Login and authentication using Google accounts.
 
-* Unlimited projects per user.  Distinct roles for project leaders and
-  study managers.
+* Unlimited projects per user.
+
+* Distinct roles for project leaders and study managers.
 
 * Supports multi-center trials.
 
