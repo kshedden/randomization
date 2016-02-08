@@ -10,9 +10,9 @@ confounding factors.
 
 __Example__: Suppose we are conducting a trial aiming to compare three
 approaches to math tutoring.  The subjects take a pre-test before
-beginning the study, and the possible scores are low, medium, and
-high.  The following assignments would be considered *unbalanced* with
-respect to the pre-test scores:
+beginning the study, where the possible scores are low, medium, and
+high.  The following treatment group assignments would be considered
+*unbalanced* with respect to the pre-test scores:
 
 | Treatment | Low   | Medium | High |
 |-----------|-------|--------|------|
@@ -39,9 +39,11 @@ example, we might obtain the following:
 | C         |  19   | 17     |  20  |
 
 
-The randomization tool will ensure that within
-each score band on the pre-test (e.g. low, medium high), the relative
-numbers of people in each treatment arm are similar.
+The randomization tool will ensure that within each score band on the
+pre-test, the relative numbers of people in each treatment arm are
+similar.
+
+### Features
 
 Some features of the randomization tool are:
 
@@ -109,7 +111,7 @@ select when creating your Appengine project on-line.
 
 4. Deploy your application using `goapp` or `appcfg.py`.  Note that
 you must be in the `src` directory of the randomization project when
-deplying.
+deploying.
 
 5. If you call your application "my_randomization", then after
 deployment it will be available at the URL
