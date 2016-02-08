@@ -1,0 +1,62 @@
+<html>
+  
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+  </head>
+  
+  <body>    
+    <div id="content">
+    
+      {{template "header" .}}
+      <br>
+      <b>Project name:</b> {{ .Project_name }}<br>
+      
+      <form action="/edit_sharing_confirm" method="post">
+	
+	{{ if .Any_shared_users }}
+	<div class="table1">
+	  <table class="hor-minimalist-b">
+	    <thead>
+              <tr>
+		<th scope="col">Delete</th>
+		<th scope="col">Name</th>
+              </tr>
+	    </thead>
+	    <tbody>
+	      
+	      {{ range .Shared_users }}
+              <tr>
+		<td><input type="radio" value="{{.}}" 
+                           name="project_list"/>
+		</td>
+		<td>{{.}}</td>
+              </tr>
+              {{ end }}
+	      
+	    </tbody>
+	  </table>
+	</div>
+	{{ else }}
+	<br>
+	This project is not currently shared. 
+	{{ end }}
+	<br>
+	
+	{{ if .Any_shared_users }}
+	<p>Share with these additional people:<br>
+	  {{ else }}
+	<p>Share with these people:<br>
+	  {{ end }}
+	  <input type="text" name="additional_people" size=60>
+	</p>
+	<input type="submit" value="Update sharing">
+
+	<input type="hidden" name="pkey" value="{{.Pkey}}">
+      </form>
+      
+      <br>
+      <a href="/dashboard">Cancel and return to dashboard</a>
+      
+    </div>
+  </body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+    <link rel="icon" href="/stylesheets/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/stylesheets/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <div id="content">
+      {{template "header" .}}
+      <br>
+      <b>Project name:</b> {{ .Name }}<br>
+      <b>Treatment groups:</b> {{ .Group_names }} ({{.Numgroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .Sampling_rates }}
+      <br>
+      {{ if .Any_vars }}
+      <p>Use this page to define all variables that will be balanced
+      among treatment groups using the minimization algorithm.  Each
+      variable name and variable level should consist of standard
+      alphanumeric symbols, and should not contain spaces or commas.
+      The levels should be entered as a comma separated list of labels
+      for the different levels of a variable.  For example, if the
+      variable name is "Gender", the levels could be entered as
+      "Female,Male".  The "Weight" parameter (a positive number)
+      determines how much influence each variable has in determining
+      the group assignments (variables with greater weight have
+      greater influence).
+
+      <p>The "function" parameter determines what function the
+      minimization algorithm optimizes when assigning subjects to
+      treatment groups.  The default "range" option aims to minimize
+      the ranges (largest minus smallest value) among the fractions of
+      subjects within each level of a variable that are assigned to
+      the different treatment groups.  These ranges are summed across
+      all the levels of all the variables to produce a final score to
+      minimize.  For example, if there are three treatment groups, and
+      the proportions of females assigned to the three groups are 0.3,
+      0.6, 0.5, then the range is 0.6 - 0.3 = 0.3.  The "standard
+      deviation" option for the minimization algorithm aims to
+      minimize the standard deviation among these fractions, summed
+      over all levels of all variables, i.e. the standard deviation of
+      0.3, 0.5, 0.6 would be one term in this sum.  In most cases, the
+      default "range" function is the better choice.  <br>
+      <form action="/create_project_step8" method="post">
+	<div class="outer">
+	  <div class="table1">
+            <div class="title">
+              Variables
+            </div>
+            <table class="hor-minimalist-b">
+	      <thead>
+		<tr>
+		  <th scope="col">Name</th>
+		  <th scope="col">Levels</th>
+		  <th scope="col">Weight</th>
+		  <th scope="col">Function</th>
+		</tr>
+	      </thead>
+              <tbody>
+		{{ range .IX }}
+		<tr>
+		  <td>
+		    <input type="text" name="name{{.}}" size=20 value="">
+		  </td>
+		  <td>
+		    <input type="text" name="levels{{.}}" size=30 value="">
+		  <td>
+		    <input type="number" name="weight{{.}}" min="1" max="5000" value="1">
+		  </td>
+		  <td>
+		    <select name="func{{.}}">
+		      <option value="Range">Range</option>
+		      <option value="StDev">StDev</option>
+		    </select>
+		  </td>
+		</tr>
+		{{ end }}
+	      </tbody>
+	    </table>
+	  </div>
+	</div>
+	<br>
+	<input type="hidden" name="project_name" value="{{ .Name }}">
+	<input type="hidden" name="group_names" value="{{ .Group_names }}">
+	<input type="hidden" name="numvar" value="{{ .Numvar }}">
+	<input type="hidden" name="numgroups" value="{{ .Numgroups }}">
+	<input type="hidden" name="store_rawdata" value="{{ .Store_RawData }}">
+	<input type="hidden" name="rates" value="{{ .Sampling_rates }}">
+	<input type="submit" value="Next">
+      </form>
+      {{ else }}
+      <p>You have elected to randomize your subjects without the use
+      of any covariates to balance.  The assignments will be made
+      using simple randomization.
+      <form action="/create_project_step8" method="post">
+	<input type="hidden" name="project_name" value="{{ .Name }}">
+	<input type="hidden" name="group_names" value="{{ .Group_names }}">
+	<input type="hidden" name="numvar" value="{{ .Numvar }}">
+	<input type="hidden" name="numgroups" value="{{ .Numgroups }}">
+	<input type="hidden" name="store_rawdata" value="{{ .Store_RawData }}">
+	<input type="hidden" name="rates" value="{{ .Sampling_rates }}">
+	<input type="submit" value="Next">
+      </form>
+      {{ end }}
+      <br>
+      <a href="/dashboard">Cancel and return to dashboard</a><br><br>
+    </div>
+  </body>
+</html>

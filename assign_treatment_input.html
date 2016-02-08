@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link type="text/css" rel="stylesheet" href="/stylesheets/main.css" />
+    <link rel="icon" href="/stylesheets/favicon.ico" type="image/x-icon">
+    <link rel="shortcut icon" href="/stylesheets/favicon.ico" type="image/x-icon">
+  </head>
+  <body>
+    <div id="content">
+      {{template "header" .}}
+      <br>
+      <b>Project name:</b> {{ .PR.Name }}<br>
+      <b>Treatment groups:</b> {{ .PV.Group_names }} ({{.Numgroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .PV.Sampling_rates }}
+      <br>
+      <br>
+      <form action="/assign_treatment_confirm" method="post">
+	<div class="outer">
+	  <div class="table1">
+            <div class="title">
+              Enter the data for a subject
+            </div>
+            <table class="hor-minimalist-b">
+	      <col width="20%"/>
+              <col width="80%"/>
+              <tbody>
+		<tr>
+		  <td>
+		    Subject id
+		  </td>
+		  <td>
+		    <input type="text" size=20 value="" name=subject_id>
+		    (only used if complete data are stored)
+		  </td>
+		</tr>
+		{{ range .PR.Variables }}
+		<tr>
+		  <td>
+		    {{.Name}}
+		  </td>
+		  <td>
+		    <select name="{{.Name}}">
+		      {{ range .Levels }}
+		      <option value="{{.}}">{{.}}</option>
+		      {{ end }}
+		    </select>
+		  </td>
+		</tr>
+		{{ end }}
+	      </tbody>
+	    </table>
+	  </div>
+	</div>
+	<br>
+	<input type="submit" value="Next">
+	<input type="hidden" name="pkey" value="{{.Pkey}}">
+	<input type="hidden" name="fields" value="{{.Fields}}">
+      </form>
+      <br>
+      <a href="/project_dashboard?pkey={{.Pkey}}">Cancel and return to project</a><br>
+      <br>
+    </div>
+  </body>
+</html>

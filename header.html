@@ -1,0 +1,14 @@
+{{define "header"}}
+        <img src="/stylesheets/logo.png">
+	<br>
+	<b>Treatment assignment system for research trials</b><br><br>
+
+	<div class="login">
+	  {{ if .Logged_in }}
+          &nbsp;{{ .User }}
+          {{ else }}
+	  &nbsp;You are not logged in.
+          {{ end }}
+	</div>
+
+{{ end }}
