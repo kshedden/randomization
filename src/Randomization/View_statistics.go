@@ -42,7 +42,7 @@ func View_statistics(w http.ResponseWriter,
 	}
 
 	num_groups := len(project.Group_names)
-	D := Decode_data(project.Data)
+	data := project.Data
 
 	m := 0
 	for _, v := range project.Variables {
@@ -58,7 +58,7 @@ func View_statistics(w http.ResponseWriter,
 			S := make([]string, 1+num_groups)
 			S[0] = v.Name + "=" + v.Levels[k]
 			for q := 0; q < num_groups; q++ {
-				u := D[j][num_levels*q+k]
+				u := data[j][k][q]
 				S[q+1] = fmt.Sprintf("%.0f", u)
 			}
 			FVS[jj] = S

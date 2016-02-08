@@ -25,7 +25,7 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	numvar := len(project.Variables)
 	rates := project.Sampling_rates
 
-	data := Decode_data(project.Data)
+	data := project.Data
 
 	msg := ""
 
@@ -69,7 +69,6 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	// A random value distributed according to the Pocock Simon
 	// probabilities.
 	ur := rgen.Float64()
-	ur = ur * ur //!!!! Temporary, to improve balance
 	jr := 0
 	for ii, x := range cumprob {
 		if x > ur {
@@ -104,7 +103,6 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 
 		VA := project.Variables[j]
 		x := (*M)[VA.Name]
-		numlevels := len(VA.Levels)
 
 		kk := -1
 		for k, v := range VA.Levels {
@@ -114,9 +112,10 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 			}
 		}
 		if kk == -1 {
+			// Should never reach here
 			fmt.Printf("\n\n???????????\n\n")
 		}
-		data[j][ii*numlevels+kk] += 1
+		data[j][kk][ii] += 1
 	}
 
 	// Update the stored data
@@ -137,8 +136,6 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	}
 
 	project.Num_assignments += 1
-
-	project.Data = Encode_data(data)
 
 	return project.Group_names[ii], msg
 }
@@ -184,12 +181,12 @@ func StDev(M []float64) float64 {
 // combination for this variable.
 func Score(x string,
 	grp int,
-	counts []float64,
+	counts [][]float64,
 	rates []float64,
 	va *Variable) float64 {
 
 	nlevel := len(va.Levels)
-	num_groups := len(counts) / nlevel
+	num_groups := len(counts[0])
 
 	new_counts := make([]float64, num_groups)
 	score_change := 0.0
@@ -203,9 +200,9 @@ func Score(x string,
 		// this unit to group `grp`.
 		for i := 0; i < num_groups; i++ {
 			if i != grp {
-				new_counts[i] = counts[i*nlevel+j]
+				new_counts[i] = counts[j][i]
 			} else {
-				new_counts[i] = counts[i*nlevel+j] + 1
+				new_counts[i] = counts[j][i] + 1
 			}
 		}
 

@@ -1,16 +1,14 @@
 package randomization
 
 import (
-	"fmt"
-	//	"strconv"
 	"appengine"
 	"appengine/datastore"
 	"appengine/user"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -39,7 +37,7 @@ type Project struct {
 	Group_names []string
 	Variables   []Variable
 	Assignments []int
-	Data        string
+	Data        [][][]float64
 
 	// Controls the level of determinism in the group assignments
 	Bias     int
@@ -75,7 +73,7 @@ type Encoded_Project struct {
 	Group_names      []byte
 	Variables        []byte
 	Assignments      []int
-	Data             string
+	Data             []byte
 	Bias             int
 	Comments         []byte
 	Modified         time.Time
@@ -96,7 +94,7 @@ type Encoded_Project_view struct {
 	Group_names      []string
 	Index            int
 	Assignments      []int
-	Data             string
+	Data             []byte
 	Bias             int
 	Comments         []*Comment
 	Modified_date    string
@@ -120,7 +118,7 @@ type Project_view struct {
 	Variables        []Variable_view
 	Key              string
 	Assignments      []int
-	Data             string
+	Data             [][][]float64
 	Bias             string
 	Comments         []*Comment
 	Modified_date    string
@@ -195,7 +193,7 @@ func Clean_split(S string, sep string) []string {
 }
 
 // Copy_encoded_project creates a copy of a given project and returns
-// it.
+// it.  This is not necessarily a deep copy.
 func Copy_encoded_project(proj *Encoded_Project) *Encoded_Project {
 
 	newproj := new(Encoded_Project)
@@ -213,7 +211,9 @@ func Copy_encoded_project(proj *Encoded_Project) *Encoded_Project {
 	newproj.Assignments = make([]int, len(proj.Assignments))
 	copy(newproj.Assignments, proj.Assignments)
 
-	newproj.Data = proj.Data
+	newproj.Data = make([]byte, len(proj.Data))
+	copy(newproj.Data, proj.Data)
+
 	newproj.Bias = proj.Bias
 
 	newproj.Comments = make([]byte, len(proj.Comments))
@@ -236,42 +236,6 @@ func Copy_encoded_project(proj *Encoded_Project) *Encoded_Project {
 	copy(newproj.Sampling_rates, proj.Sampling_rates)
 
 	return (newproj)
-}
-
-// Decode_data
-func Decode_data(D string) [][]float64 {
-
-	DL := strings.Split(D, ";")
-	Z := make([][]float64, len(DL))
-
-	for i, V := range DL {
-		U := strings.Split(V, ",")
-		W := make([]float64, len(U))
-		for j, x := range U {
-			W[j], _ = strconv.ParseFloat(x, 64)
-		}
-		Z[i] = W
-	}
-
-	return Z
-}
-
-// Encode_data represents the treatment assignment frequencies as a
-// string.  The variables are separated by ";", and the treatmtent
-// group frequencies within a level are separated by ",".
-func Encode_data(Z [][]float64) string {
-
-	D := make([]string, len(Z))
-
-	for i, V := range Z {
-		U := make([]string, len(V))
-		for j, x := range V {
-			U[j] = fmt.Sprintf("%.4f", x)
-		}
-		D[i] = strings.Join(U, ",")
-	}
-
-	return strings.Join(D, ";")
 }
 
 // Get_project_from_key
@@ -310,7 +274,13 @@ func Encode_Project(P *Project) (*Encoded_Project, error) {
 	EP.Owner = P.Owner
 	EP.Created = P.Created
 	EP.Name = P.Name
-	EP.Data = P.Data
+
+	dc, err := json.Marshal(P.Data)
+	if err != nil {
+		return nil, err
+	}
+	EP.Data = dc
+
 	EP.Assignments = P.Assignments
 	EP.Bias = P.Bias
 	EP.Modified = P.Modified
@@ -377,7 +347,11 @@ func Decode_Project(EP *Encoded_Project) *Project {
 	P.Owner = EP.Owner
 	P.Created = EP.Created
 	P.Name = EP.Name
-	P.Data = EP.Data
+
+	var data [][][]float64
+	json.Unmarshal(EP.Data, &data)
+	P.Data = data
+
 	P.Assignments = EP.Assignments
 	P.Bias = EP.Bias
 	P.Store_RawData = EP.Store_RawData
@@ -858,17 +832,16 @@ func Remove_from_aggregate(rec *DataRecord,
 	// Update the overall assignment totals
 	proj.Assignments[grp_ix] -= 1
 
+	data := proj.Data
+
 	// Update the within-variable assignment totals
-	D := Decode_data(proj.Data)
 	for j, va := range proj.Variables {
-		numlevels := len(va.Levels)
 		for k, lev := range va.Levels {
 			if rec.Data[j] == lev {
-				D[j][grp_ix*numlevels+k] -= 1
+				data[j][k][grp_ix] -= 1
 			}
 		}
 	}
-	proj.Data = Encode_data(D)
 }
 
 // Add_to_aggregate
@@ -880,15 +853,14 @@ func Add_to_aggregate(rec *DataRecord,
 	// Update the overall assignment totals
 	proj.Assignments[grp_ix] += 1
 
+	data := proj.Data
+
 	// Update the within-variable assignment totals
-	D := Decode_data(proj.Data)
 	for j, va := range proj.Variables {
-		numlevels := len(va.Levels)
 		for k, lev := range va.Levels {
 			if rec.Data[j] == lev {
-				D[j][grp_ix*numlevels+k] += 1
+				data[j][k][grp_ix] += 1
 			}
 		}
 	}
-	proj.Data = Encode_data(D)
 }

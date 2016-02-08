@@ -570,16 +570,18 @@ func Create_project_step9(w http.ResponseWriter,
 
 	// Set up the data.
 	numgroups := len(project.Group_names)
-	DS := make([]string, len(project.Variables))
-	for j, x := range project.Variables {
-		var U []string
-		U = make([]string, len(x.Levels)*numgroups)
-		for k, _ := range U {
-			U[k] = "0"
+	data0 := make([][][]float64, len(project.Variables))
+	for j, va := range project.Variables {
+		data0[j] = make([][]float64, len(va.Levels))
+		for k, _ := range va.Levels {
+			data0[j][k] = make([]float64, numgroups)
 		}
-		DS[j] = strings.Join(U, ",")
 	}
-	project.Data = strings.Join(DS, ";")
+	var err error
+	project.Data = data0
+	if err != nil {
+		c.Errorf("JSON: %v]n", err)
+	}
 
 	Pkey := user.String() + "::" + project_name
 	Key := datastore.NewKey(c, "Encoded_Project", Pkey, 0, nil)

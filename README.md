@@ -111,11 +111,14 @@ select when creating your Appengine project on-line.
 
 4. Deploy your application using `goapp` or `appcfg.py`.  Note that
 you must be in the `src` directory of the randomization project when
-deploying.
+deploying the application.
 
 5. If you call your application "my_randomization", then after
 deployment it will be available at the URL
-"my_randomization.appspot.com".
+"my_randomization.appspot.com".  Note that the first time you install
+the application it will take a few minutes for Appengine to build the
+database indices.  While this is happening, the application will not
+be usable.
 
 ### Customization
 
