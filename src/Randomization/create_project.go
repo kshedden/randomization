@@ -22,7 +22,6 @@ func Create_project_step1(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
 
 	type TV struct {
@@ -72,9 +71,9 @@ func Create_project_step2(w http.ResponseWriter,
 	var pr EncodedProject
 	err := datastore.Get(c, key, &pr)
 	if err == nil {
-		Msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", project_name, user.String())
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", project_name, user.String())
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
@@ -311,9 +310,9 @@ func Create_project_step6(w http.ResponseWriter,
 
 		x, err := strconv.ParseFloat(sampling_rates[i], 64)
 		if (err != nil) || (x <= 0) {
-			Msg := "The sampling rates must be positive numbers."
-			Return_msg := "Return to dashboard"
-			Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+			msg := "The sampling rates must be positive numbers."
+			return_msg := "Return to dashboard"
+			Message_page(w, r, user, msg, return_msg, "/dashboard")
 			return
 		}
 	}
@@ -586,18 +585,14 @@ func Create_project_step9(w http.ResponseWriter,
 	}
 	_, err = datastore.Put(c, dkey, eproj)
 	if err != nil {
-		Msg := "A datastore error occured, the project was not created."
+		msg := "A datastore error occured, the project was not created."
 		c.Errorf("Create_project_step9: %v", err)
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
-	} else {
-		c.Errorf("WORKED~!!")
-		c.Errorf("%+v", eproj)
-		c.Errorf("%v", dkey)
 	}
 
-	// Remove any stale SharingByProject values
+	// Remove any stale SharingByProject entities
 	dkey = datastore.NewKey(c, "SharingByProject", pkey, 0, nil)
 	err = datastore.Delete(c, dkey)
 	if err != nil {

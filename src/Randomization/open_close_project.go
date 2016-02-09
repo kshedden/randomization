@@ -18,22 +18,28 @@ func OpenClose_project(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
+		c.Errorf("OpenClose_project [1]: %v", err)
+		return
+	}
 
-	if PR.Owner != user.String() {
-		Msg := "Only the project owner can open or close a project for enrollment."
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+	if proj.Owner != user.String() {
+		msg := "Only the project owner can open or close a project for enrollment."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -49,10 +55,10 @@ func OpenClose_project(w http.ResponseWriter,
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.Pkey = Pkey
-	template_values.ProjectName = PR.Name
-	template_values.GroupNames = PR.GroupNames
-	template_values.Open = PR.Open
+	template_values.Pkey = pkey
+	template_values.ProjectName = proj.Name
+	template_values.GroupNames = proj.GroupNames
+	template_values.Open = proj.Open
 
 	tmpl, err := template.ParseFiles("header.html",
 		"openclose_project.html")
@@ -77,40 +83,38 @@ func OpenClose_completed(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, _ := Get_project_from_key(pkey, &c)
 
-	if PR.Owner != user.String() {
-		Msg := "Only the project owner can open or close a project for enrollment."
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+	if proj.Owner != user.String() {
+		msg := "Only the project owner can open or close a project for enrollment."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	status := r.FormValue("open")
 
 	if status == "open" {
-		Msg := fmt.Sprintf("The project \"%s\" is now open for enrollment.", PR.Name)
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
-		PR.Open = true
+		msg := fmt.Sprintf("The project \"%s\" is now open for enrollment.", proj.Name)
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
+		proj.Open = true
 	} else {
-		Msg := fmt.Sprintf("The project \"%s\" is now closed for enrollment.", PR.Name)
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
-		PR.Open = false
+		msg := fmt.Sprintf("The project \"%s\" is now closed for enrollment.", proj.Name)
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
+		proj.Open = false
 	}
 
-	Store_project(PR, Pkey, &c)
+	Store_project(proj, pkey, &c)
 }

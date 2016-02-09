@@ -116,9 +116,9 @@ func Check_access(user *user.User,
 	}
 
 	// Otherwise, check if the project is shared with the user.
-	Key := datastore.NewKey(*c, "SharingByUser", user_name, 0, nil)
-	var SBU SharingByUser
-	err := datastore.Get(*c, Key, &SBU)
+	key := datastore.NewKey(*c, "SharingByUser", user_name, 0, nil)
+	var sbuser SharingByUser
+	err := datastore.Get(*c, key, &sbuser)
 	if err == datastore.ErrNoSuchEntity {
 		check_access_failed(nil, c, w, r, user)
 		return false
@@ -126,7 +126,7 @@ func Check_access(user *user.User,
 		check_access_failed(&err, c, w, r, user)
 		return false
 	}
-	L := Clean_split(SBU.Projects, ",")
+	L := Clean_split(sbuser.Projects, ",")
 	for _, x := range L {
 		if pkey == x {
 			return true
@@ -144,16 +144,16 @@ func check_access_failed(err *error,
 	user *user.User) {
 
 	if err != nil {
-		Msg := "A datastore error occured.  Ask the administrator to check the log for error details."
+		msg := "A datastore error occured.  Ask the administrator to check the log for error details."
 		(*c).Errorf("check_access_failed: %v", err)
-		Return_msg := "Return to dashboard"
-		Message_page(*w, r, user, Msg, Return_msg, "/dashboard")
+		return_msg := "Return to dashboard"
+		Message_page(*w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
-	Msg := "You don't have access to this project."
-	Return_msg := "Return to dashboard"
+	msg := "You don't have access to this project."
+	return_msg := "Return to dashboard"
 	(*c).Infof(fmt.Sprintf("Failed access: %v\n", user))
-	Message_page(*w, r, user, Msg, Return_msg, "/dashboard")
+	Message_page(*w, r, user, msg, return_msg, "/dashboard")
 }
 
 type handler func(http.ResponseWriter, *http.Request)

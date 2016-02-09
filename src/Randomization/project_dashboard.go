@@ -4,7 +4,6 @@ import (
 	"appengine"
 	"appengine/user"
 	"html/template"
-	"math/rand"
 	"net/http"
 	"strings"
 )
@@ -19,59 +18,54 @@ func Project_dashboard(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
-	// debugging to get a sense of how rand performs without initialization
-	c.Infof("%v\n", rand.Float64())
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	A := strings.Split(Pkey, "::")
-	owner := A[0]
+	splkey := strings.Split(pkey, "::")
+	owner := splkey[0]
 
-	project, _ := Get_project_from_key(Pkey, &c)
+	project, _ := Get_project_from_key(pkey, &c)
 	project_view := Format_project(project)
 
 	type TV struct {
-		User              string
-		LoggedIn          bool
-		Proj_view         *Project_view
-		NumGroups         int
-		Sharing           string
-		Shared_users      []string
-		Pkey              string
-		Show_edit_sharing bool
-		Owner             string
-		StoreRawData      string
-		Open              string
-		Any_vars          bool
+		User            string
+		LoggedIn        bool
+		ProjView        *ProjectView
+		NumGroups       int
+		Sharing         string
+		SharedUsers     []string
+		Pkey            string
+		ShowEditSharing bool
+		Owner           string
+		StoreRawData    string
+		Open            string
+		AnyVars         bool
 	}
 
-	SU, _ := Get_shared_users(Pkey, &c)
+	susers, _ := Get_shared_users(pkey, &c)
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.Proj_view = project_view
+	template_values.ProjView = project_view
 	template_values.NumGroups = len(project.GroupNames)
-	template_values.Any_vars = len(project.Variables) > 0
+	template_values.AnyVars = len(project.Variables) > 0
 	if project.StoreRawData {
 		template_values.StoreRawData = "Yes"
 	} else {
 		template_values.StoreRawData = "No"
 	}
-	if len(SU) > 0 {
-		template_values.Sharing = strings.Join(SU, ", ")
+	if len(susers) > 0 {
+		template_values.Sharing = strings.Join(susers, ", ")
 	} else {
 		template_values.Sharing = "Nobody"
 	}
-	template_values.Pkey = Pkey
-	template_values.Show_edit_sharing = owner == user.String()
+	template_values.Pkey = pkey
+	template_values.ShowEditSharing = owner == user.String()
 	template_values.Owner = owner
 
 	if project_view.Open {
@@ -80,8 +74,7 @@ func Project_dashboard(w http.ResponseWriter,
 		template_values.Open = "No"
 	}
 
-	tmpl, err := template.ParseFiles("header.html",
-		"project_dashboard.html")
+	tmpl, err := template.ParseFiles("header.html", "project_dashboard.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return

@@ -18,16 +18,23 @@ func View_statistics(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	project, _ := Get_project_from_key(Pkey, &c)
+	var err error
+	project, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		c.Errorf("View_statistics [1]: %v", err)
+		msg := "Datastore error: unable to view statistics."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		c.Errorf("View_statistics [1]: %v", err)
+		return
+	}
 	project_view := Format_project(project)
 
 	// Treatment assignment.
@@ -62,28 +69,27 @@ func View_statistics(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User         string
-		LoggedIn     bool
-		Project      *Project
-		Any_vars     bool
-		Project_view *Project_view
-		TAS          [][]string
-		FVS          [][]string
-		Pkey         string
+		User        string
+		LoggedIn    bool
+		Project     *Project
+		AnyVars     bool
+		ProjectView *ProjectView
+		TAS         [][]string
+		FVS         [][]string
+		Pkey        string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
 	template_values.Project = project
-	template_values.Any_vars = len(project.Variables) > 0
-	template_values.Project_view = project_view
+	template_values.AnyVars = len(project.Variables) > 0
+	template_values.ProjectView = project_view
 	template_values.TAS = TAS
-	template_values.Pkey = Pkey
+	template_values.Pkey = pkey
 	template_values.FVS = FVS
 
-	tmpl, err := template.ParseFiles("header.html",
-		"view_statistics.html")
+	tmpl, err := template.ParseFiles("header.html", "view_statistics.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return

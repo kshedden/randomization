@@ -30,17 +30,17 @@ func Remove_subject(w http.ResponseWriter,
 	PR, _ := Get_project_from_key(Pkey, &c)
 
 	if PR.Owner != user.String() {
-		Msg := "Only the project owner can remove treatment group assignments that have already been made."
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "Only the project owner can remove treatment group assignments that have already been made."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+Pkey)
 		return
 	}
 
 	if PR.StoreRawData == false {
-		Msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+Pkey)
 		return
 	}
@@ -107,9 +107,9 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	PR, _ := Get_project_from_key(Pkey, &c)
 
 	if PR.Owner != user.String() {
-		Msg := "Only the project owner can remove treatment group assignments that have already been made."
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "Only the project owner can remove treatment group assignments that have already been made."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+Pkey)
 		return
 	}
@@ -117,9 +117,9 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	// Check if the subject has already been removed
 	for _, s := range PR.RemovedSubjects {
 		if s == subject_id {
-			Msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subject_id)
-			Return_msg := "Return to project"
-			Message_page(w, r, user, Msg, Return_msg,
+			msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subject_id)
+			return_msg := "Return to project"
+			Message_page(w, r, user, msg, return_msg,
 				"/project_dashboard?pkey="+Pkey)
 			return
 		}
@@ -134,9 +134,9 @@ func Remove_subject_confirm(w http.ResponseWriter,
 		}
 	}
 	if found == false {
-		Msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subject_id)
-		Return_msg := "Return to project"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subject_id)
+		return_msg := "Return to project"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+Pkey)
 		return
 	}
@@ -183,17 +183,17 @@ func Remove_subject_completed(w http.ResponseWriter,
 	PR, _ := Get_project_from_key(Pkey, &c)
 
 	if PR.Owner != user.String() {
-		Msg := "Only the project owner can remove treatment group assignments that have already been made."
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "Only the project owner can remove treatment group assignments that have already been made."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+Pkey)
 		return
 	}
 
 	if PR.StoreRawData == false {
-		Msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			fmt.Sprintf("/project_dashboard?pkey=", Pkey))
 		return
 	}
@@ -217,9 +217,9 @@ func Remove_subject_completed(w http.ResponseWriter,
 	PR.Comments = append(PR.Comments, comment)
 
 	if found == false {
-		Msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subject_id)
-		Return_msg := "Return to project dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subject_id)
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+Pkey)
 		return
 	}
@@ -228,8 +228,8 @@ func Remove_subject_completed(w http.ResponseWriter,
 	PR.NumAssignments -= 1
 	Store_project(PR, Pkey, &c)
 
-	Msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subject_id)
-	Return_msg := "Return to project dashboard"
-	Message_page(w, r, user, Msg, Return_msg,
+	msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subject_id)
+	return_msg := "Return to project dashboard"
+	Message_page(w, r, user, msg, return_msg,
 		"/project_dashboard?pkey="+Pkey)
 }

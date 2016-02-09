@@ -20,10 +20,10 @@ func Dashboard(w http.ResponseWriter,
 
 	_, projlist, err := GetProjects(user.String(), true, &c)
 	if err != nil {
-		Msg := "A datastore error occured, projects cannot be retrieved."
+		msg := "A datastore error occured, projects cannot be retrieved."
 		c.Errorf("Dashboard: %v", err)
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, nil, Msg, Return_msg, "/dashboard")
+		return_msg := "Return to dashboard"
+		Message_page(w, r, nil, msg, return_msg, "/dashboard")
 		return
 	}
 

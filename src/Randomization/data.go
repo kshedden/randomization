@@ -13,6 +13,7 @@ import (
 	"time"
 )
 
+// DataRecord stores one record of raw data.
 type DataRecord struct {
 	SubjectId     string
 	AssignedTime  time.Time
@@ -23,6 +24,7 @@ type DataRecord struct {
 	Assigner      string
 }
 
+// Project stores all information about one project.
 type Project struct {
 	// The Google id of the project owner.
 	Owner string
@@ -109,14 +111,14 @@ type EncodedProjectView struct {
 	SamplingRates   string
 }
 
-// Project_view is a printable version of Project.
-type Project_view struct {
+// ProjectView is a printable version of Project.
+type ProjectView struct {
 	Owner           string
 	CreatedDate     string
 	CreatedTime     string
 	GroupNames      string
 	Name            string
-	Variables       []Variable_view
+	Variables       []VariableView
 	Key             string
 	Assignments     []int
 	Data            [][][]float64
@@ -141,8 +143,8 @@ type Variable struct {
 	Func   string
 }
 
-// Variable_view is a printable version of Variable.
-type Variable_view struct {
+// VariableView is a printable version of a variable.
+type VariableView struct {
 	Name   string
 	Levels string
 	Index  int
@@ -157,14 +159,14 @@ type SharingByUser struct {
 	Projects string // Comma separated list of projects
 }
 
-// SharingByProject is a record of all users who have access to the
+// SharingByProject is a record of all users who have access to a
 // given project.
 type SharingByProject struct {
 	ProjectName string
 	Users       string
 }
 
-// Comment
+// Comment stores a single comment.
 type Comment struct {
 	Person   string
 	DateTime time.Time
@@ -362,17 +364,17 @@ func Decode_Project(eproj *EncodedProject) *Project {
 	proj.Open = eproj.Open
 	proj.SamplingRates = eproj.SamplingRates
 
-	var S []string
-	json.Unmarshal(eproj.GroupNames, &S)
-	proj.GroupNames = S
+	var group_names []string
+	json.Unmarshal(eproj.GroupNames, &group_names)
+	proj.GroupNames = group_names
 
-	var V []Variable
-	json.Unmarshal(eproj.Variables, &V)
-	proj.Variables = V
+	var vbls []Variable
+	json.Unmarshal(eproj.Variables, &vbls)
+	proj.Variables = vbls
 
-	var C []*Comment
-	json.Unmarshal(eproj.Comments, &C)
-	proj.Comments = C
+	var comments []*Comment
+	json.Unmarshal(eproj.Comments, &comments)
+	proj.Comments = comments
 
 	if eproj.StoreRawData {
 		var rawdata []*DataRecord
@@ -383,11 +385,11 @@ func Decode_Project(eproj *EncodedProject) *Project {
 	return proj
 }
 
-// Format_project returns a Project_view object corresponding to the
+// Format_project returns a ProjectView object corresponding to the
 // given Project and Key object.
-func Format_project(project *Project) *Project_view {
+func Format_project(project *Project) *ProjectView {
 
-	B := new(Project_view)
+	B := new(ProjectView)
 	B.Owner = project.Owner
 	B.Data = project.Data
 	B.Name = project.Name
@@ -400,7 +402,7 @@ func Format_project(project *Project) *Project_view {
 	B.CreatedDate = t.Format("2006-1-2")
 	B.CreatedTime = t.Format("3:04pm")
 	B.GroupNames = strings.Join(project.GroupNames, ",")
-	B.Variables = make([]Variable_view, len(project.Variables))
+	B.Variables = make([]VariableView, len(project.Variables))
 
 	rate_str := make([]string, len(project.SamplingRates))
 	for i, x := range project.SamplingRates {
@@ -487,10 +489,10 @@ func Format_encoded_projects(proj []*EncodedProject) []*EncodedProjectView {
 }
 
 // Format_projects
-func Format_projects(projects []*Project) []*Project_view {
+func Format_projects(projects []*Project) []*ProjectView {
 
 	n := len(projects)
-	fmt_projects := make([]*Project_view, n, n)
+	fmt_projects := make([]*ProjectView, n, n)
 	for i := 0; i < n; i++ {
 		fmt_projects[i] = Format_project(projects[i])
 	}
@@ -498,11 +500,11 @@ func Format_projects(projects []*Project) []*Project_view {
 	return fmt_projects
 }
 
-// Format_variables returns an array of Variable_view objects
+// Format_variables returns an array of VariableView objects
 // corresponding to the given array of Variable objects.
-func Format_variables(val []Variable) []Variable_view {
+func Format_variables(val []Variable) []VariableView {
 
-	valf := make([]Variable_view, len(val))
+	valf := make([]VariableView, len(val))
 
 	for i, va := range val {
 		valf[i] = Format_Variable(va)
@@ -512,11 +514,11 @@ func Format_variables(val []Variable) []Variable_view {
 	return valf
 }
 
-// Format_variable returns a Variable_view object corresponding to the
+// Format_variable returns a VariableView object corresponding to the
 // given Variable object.
-func Format_Variable(va Variable) Variable_view {
+func Format_Variable(va Variable) VariableView {
 
-	var vv Variable_view
+	var vv VariableView
 	vv.Name = va.Name
 	vv.Levels = strings.Join(va.Levels, ",")
 	vv.Weight = fmt.Sprintf("%.0f", va.Weight)
@@ -530,20 +532,19 @@ func Format_Variable(va Variable) Variable_view {
 func Get_shared_users(project_name string,
 	c *appengine.Context) ([]string, error) {
 
-	Key := datastore.NewKey(*c, "SharingByProject",
-		project_name, 0, nil)
-	var SP SharingByProject
-	err := datastore.Get(*c, Key, &SP)
+	key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
+	var sproj SharingByProject
+	err := datastore.Get(*c, key, &sproj)
 	if err == datastore.ErrNoSuchEntity {
 		return []string{}, nil
 	} else if err != nil {
 		return []string{}, err
 	}
-	if len(SP.Users) == 0 {
+	if len(sproj.Users) == 0 {
 		return []string{}, nil
 	}
-	A := Clean_split(SP.Users, ",")
-	return A, nil
+	users := Clean_split(sproj.Users, ",")
+	return users, nil
 }
 
 // Add_sharing adds all the given users to be shared for the given
@@ -557,17 +558,18 @@ func Add_sharing(project_name string,
 	}
 
 	// Update SharingByProject.
-	Key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
-	SP := new(SharingByProject)
-	err := datastore.Get(*c, Key, SP)
+	key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
+	sbproj := new(SharingByProject)
+	err := datastore.Get(*c, key, sbproj)
 	if err == datastore.ErrNoSuchEntity {
-		SP = new(SharingByProject)
-		SP.ProjectName = project_name
-		SP.Users = strings.Join(user_names, ",")
+		(*c).Errorf("Add_sharing [1]: %v", err)
+		// Create a new SharingByProject and carry on
+		sbproj.ProjectName = project_name
+		sbproj.Users = strings.Join(user_names, ",")
 	} else if err != nil {
 		return err
 	} else {
-		U := Clean_split(SP.Users, ",")
+		U := Clean_split(sbproj.Users, ",")
 		m := make(map[string]bool)
 		for _, u := range U {
 			m[u] = true
@@ -581,28 +583,28 @@ func Add_sharing(project_name string,
 			A[i] = k
 			i++
 		}
-		SP.Users = strings.Join(A, ",")
+		sbproj.Users = strings.Join(A, ",")
 	}
 
-	_, err = datastore.Put(*c, Key, SP)
+	_, err = datastore.Put(*c, key, sbproj)
 	if err != nil {
 		return err
 	}
 
 	// Update SharingByUser.
 	for _, user_name := range user_names {
-		Key = datastore.NewKey(*c, "SharingByUser",
+		key = datastore.NewKey(*c, "SharingByUser",
 			strings.ToLower(user_name), 0, nil)
-		SU := new(SharingByUser)
-		err := datastore.Get(*c, Key, SU)
+		sbuser := new(SharingByUser)
+		err := datastore.Get(*c, key, sbuser)
 		if err == datastore.ErrNoSuchEntity {
-			SU = new(SharingByUser)
-			SU.User = user_name
-			SU.Projects = project_name
+			sbuser = new(SharingByUser)
+			sbuser.User = user_name
+			sbuser.Projects = project_name
 		} else if err != nil {
 			return err
 		} else {
-			U := Clean_split(SU.Projects, ",")
+			U := Clean_split(sbuser.Projects, ",")
 			m := make(map[string]bool)
 			for _, u := range U {
 				m[u] = true
@@ -614,9 +616,9 @@ func Add_sharing(project_name string,
 				A[i] = k
 				i++
 			}
-			SU.Projects = strings.Join(A, ",")
+			sbuser.Projects = strings.Join(A, ",")
 		}
-		_, err = datastore.Put(*c, Key, SU)
+		_, err = datastore.Put(*c, key, sbuser)
 		if err != nil {
 			return err
 		}
@@ -666,9 +668,9 @@ func Remove_sharing(project_name string,
 	}
 
 	// Update SharingByProject.
-	Key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
+	key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
 	sproj := new(SharingByProject)
-	err := datastore.Get(*c, Key, sproj)
+	err := datastore.Get(*c, key, sproj)
 	if err == datastore.ErrNoSuchEntity {
 		// OK
 	} else if err != nil {
@@ -678,7 +680,7 @@ func Remove_sharing(project_name string,
 		users = unique_svec(users)
 		users = sdiff(users, rmu)
 		sproj.Users = strings.Join(users, ",")
-		_, err = datastore.Put(*c, Key, sproj)
+		_, err = datastore.Put(*c, key, sproj)
 		if err != nil {
 			return err
 		}
@@ -686,8 +688,7 @@ func Remove_sharing(project_name string,
 
 	// Update SharingByUser.
 	for _, name := range user_names {
-		pkey := datastore.NewKey(*c, "SharingByUser",
-			strings.ToLower(name), 0, nil)
+		pkey := datastore.NewKey(*c, "SharingByUser", strings.ToLower(name), 0, nil)
 		suser := new(SharingByUser)
 		err := datastore.Get(*c, pkey, suser)
 		if err == datastore.ErrNoSuchEntity {
@@ -700,7 +701,7 @@ func Remove_sharing(project_name string,
 			projlist = sdiff(projlist, map[string]bool{project_name: true})
 			suser.Projects = strings.Join(projlist, ",")
 
-			_, err = datastore.Put(*c, Key, suser)
+			_, err = datastore.Put(*c, pkey, suser)
 			if err != nil {
 				return err
 			}
@@ -785,7 +786,7 @@ func ServeError(c *appengine.Context,
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	io.WriteString(w, "Internal Server Error")
-	(*c).Errorf("%v", err)
+	(*c).Errorf("ServeError [1]: %v", err)
 	fmt.Printf("\n%v\n", err)
 }
 
@@ -794,12 +795,11 @@ func ServeError(c *appengine.Context,
 func Message_page(w http.ResponseWriter,
 	r *http.Request,
 	login_user *user.User,
-	Msg string,
-	Return_msg string,
-	Return_url string) {
+	msg string,
+	return_msg string,
+	return_url string) {
 
 	c := appengine.NewContext(r)
-
 	tmpl, err := template.ParseFiles("header.html",
 		"message.html")
 	if err != nil {
@@ -808,12 +808,12 @@ func Message_page(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User       string
-		LoggedIn   bool
-		Msg        string
-		Return_url string
-		Return_msg string
-		Logout_url string
+		User      string
+		LoggedIn  bool
+		Msg       string
+		ReturnUrl string
+		ReturnMsg string
+		LogoutUrl string
 	}
 
 	template_values := new(TV)
@@ -823,9 +823,9 @@ func Message_page(w http.ResponseWriter,
 		template_values.User = ""
 	}
 	template_values.LoggedIn = login_user != nil
-	template_values.Msg = Msg
-	template_values.Return_url = Return_url
-	template_values.Return_msg = Return_msg
+	template_values.Msg = msg
+	template_values.ReturnUrl = return_url
+	template_values.ReturnMsg = return_msg
 
 	if err := tmpl.ExecuteTemplate(w, "message.html",
 		template_values); err != nil {

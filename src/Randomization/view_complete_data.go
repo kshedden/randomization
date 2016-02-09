@@ -29,9 +29,9 @@ func View_complete_data(w http.ResponseWriter,
 
 	proj, _ := Get_project_from_key(pkey, &c)
 	if !proj.StoreRawData {
-		Msg := "Complete data are not stored for this project."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "Complete data are not stored for this project."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg,
 			fmt.Sprintf("/project_dashboard?pkey=%s", pkey))
 		return
 	}

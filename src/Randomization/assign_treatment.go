@@ -21,7 +21,6 @@ func Assign_treatment_input(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
 
 	if err := r.ParseForm(); err != nil {
@@ -29,26 +28,26 @@ func Assign_treatment_input(w http.ResponseWriter,
 		return
 	}
 
-	Pkey := r.FormValue("pkey")
+	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, err := Get_project_from_key(Pkey, &c)
+	PR, err := Get_project_from_key(pkey, &c)
 	if err != nil {
 		c.Errorf("Assign_treatment_input: %v", err)
-		Msg := "A datastore error occured, the project could not be loaded."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "A datastore error occured, the project could not be loaded."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
 	if PR.Open == false {
-		Msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
-		Return_msg := "Return to project"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
+		return_msg := "Return to project"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -58,7 +57,7 @@ func Assign_treatment_input(w http.ResponseWriter,
 		User      string
 		LoggedIn  bool
 		PR        *Project
-		PV        *Project_view
+		PV        *ProjectView
 		NumGroups int
 		Fields    string
 		Pkey      string
@@ -70,7 +69,7 @@ func Assign_treatment_input(w http.ResponseWriter,
 	template_values.PR = PR
 	template_values.PV = PV
 	template_values.NumGroups = len(PR.GroupNames)
-	template_values.Pkey = Pkey
+	template_values.Pkey = pkey
 
 	S := make([]string, len(PR.Variables))
 	for i, v := range PR.Variables {
@@ -99,9 +98,9 @@ func check_before_assigning(proj *Project,
 	r *http.Request) bool {
 
 	if proj.Open == false {
-		Msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
-		Return_msg := "Return to project"
-		Message_page(w, r, user, Msg, Return_msg,
+		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
+		return_msg := "Return to project"
+		Message_page(w, r, user, msg, return_msg,
 			"/project_dashboard?pkey="+pkey)
 		return false
 	}
@@ -110,18 +109,18 @@ func check_before_assigning(proj *Project,
 	if proj.StoreRawData {
 
 		if len(subject_id) == 0 {
-			Msg := fmt.Sprintf("The subject id may not be blank.")
-			Return_msg := "Return to project"
-			Message_page(w, r, user, Msg, Return_msg,
+			msg := fmt.Sprintf("The subject id may not be blank.")
+			return_msg := "Return to project"
+			Message_page(w, r, user, msg, return_msg,
 				"/project_dashboard?pkey="+pkey)
 			return false
 		}
 
 		for _, rec := range proj.RawData {
 			if subject_id == rec.SubjectId {
-				Msg := fmt.Sprintf("Subject '%s' has already been assigned to a treatment group.  Please use a different subject id.", subject_id)
-				Return_msg := "Return to project"
-				Message_page(w, r, user, Msg, Return_msg,
+				msg := fmt.Sprintf("Subject '%s' has already been assigned to a treatment group.  Please use a different subject id.", subject_id)
+				return_msg := "Return to project"
+				Message_page(w, r, user, msg, return_msg,
 					"/project_dashboard?pkey="+pkey)
 				return false
 			}
@@ -144,9 +143,9 @@ func Assign_treatment_confirm(w http.ResponseWriter,
 
 	user := user.Current(c)
 
-	Pkey := r.FormValue("pkey")
+	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
@@ -158,16 +157,16 @@ func Assign_treatment_confirm(w http.ResponseWriter,
 	subject_id := r.FormValue("subject_id")
 	subject_id = strings.TrimSpace(subject_id)
 
-	project, err := Get_project_from_key(Pkey, &c)
+	project, err := Get_project_from_key(pkey, &c)
 	if err != nil {
 		c.Errorf("Assign_treatment_confirm: %v", err)
-		Msg := "A datastore error occured, the project could not be loaded."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "A datastore error occured, the project could not be loaded."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
-	ok := check_before_assigning(project, Pkey, subject_id, user, w, r)
+	ok := check_before_assigning(project, pkey, subject_id, user, w, r)
 	if !ok {
 		return
 	}
@@ -186,31 +185,31 @@ func Assign_treatment_confirm(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User         string
-		LoggedIn     bool
-		Pkey         string
-		Project      *Project
-		Project_view *Project_view
-		NumGroups    int
-		Fields       string
-		FV           [][]string
-		Values       string
-		SubjectId    string
-		Any_vars     bool
+		User        string
+		LoggedIn    bool
+		Pkey        string
+		Project     *Project
+		ProjectView *ProjectView
+		NumGroups   int
+		Fields      string
+		FV          [][]string
+		Values      string
+		SubjectId   string
+		AnyVars     bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.Pkey = Pkey
+	template_values.Pkey = pkey
 	template_values.Project = project
-	template_values.Project_view = project_view
+	template_values.ProjectView = project_view
 	template_values.NumGroups = len(project.GroupNames)
 	template_values.Fields = strings.Join(Fields, ",")
 	template_values.FV = FV
 	template_values.Values = strings.Join(Values, ",")
 	template_values.SubjectId = subject_id
-	template_values.Any_vars = len(project.Variables) > 0
+	template_values.AnyVars = len(project.Variables) > 0
 
 	tmpl, err := template.ParseFiles("header.html",
 		"assign_treatment_confirm.html")
@@ -235,12 +234,10 @@ func Assign_treatment(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
@@ -249,12 +246,12 @@ func Assign_treatment(w http.ResponseWriter,
 		return
 	}
 
-	PR, err := Get_project_from_key(Pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
 	if err != nil {
 		c.Errorf("Assign_treatment %v", err)
-		Msg := "A datastore error occured, the project could not be loaded."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "A datastore error occured, the project could not be loaded."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
@@ -263,40 +260,40 @@ func Assign_treatment(w http.ResponseWriter,
 	// Check this a second time in case someone lands on this page
 	// without going through the previous checks
 	// (e.g. inappropriate use of back button on browser).
-	ok := check_before_assigning(PR, Pkey, subject_id, user, w, r)
+	ok := check_before_assigning(proj, pkey, subject_id, user, w, r)
 	if !ok {
 		return
 	}
 
-	PV := Format_project(PR)
+	pview := Format_project(proj)
 
-	Fields := strings.Split(r.FormValue("fields"), ",")
-	Values := strings.Split(r.FormValue("values"), ",")
+	fields := strings.Split(r.FormValue("fields"), ",")
+	values := strings.Split(r.FormValue("values"), ",")
 
-	// M maps variable names to values for the unit that is about
+	// mpv maps variable names to values for the unit that is about
 	// to be randomized to a treatment group.
-	M := make(map[string]string)
-	for i, x := range Fields {
-		M[x] = Values[i]
+	mpv := make(map[string]string)
+	for i, x := range fields {
+		mpv[x] = values[i]
 	}
 
-	ax, msg, err := Do_assignment(&M, PR, subject_id, user.String())
+	ax, msg, err := Do_assignment(&mpv, proj, subject_id, user.String())
 	if err != nil {
 		c.Errorf("%v", err)
 	}
 	c.Infof("%v", msg)
 
-	PR.Modified = time.Now()
+	proj.Modified = time.Now()
 
 	// Update the project in the database.
-	EP, _ := Encode_Project(PR)
-	Key := datastore.NewKey(c, "EncodedProject", Pkey, 0, nil)
-	_, err = datastore.Put(c, Key, EP)
+	eproj, _ := Encode_Project(proj)
+	key := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
+	_, err = datastore.Put(c, key, eproj)
 	if err != nil {
 		c.Errorf("Assign_treatment: %v", err)
-		Msg := "A datastore error occured, the project could not be updated."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "A datastore error occured, the project could not be updated."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
@@ -304,7 +301,7 @@ func Assign_treatment(w http.ResponseWriter,
 		User      string
 		LoggedIn  bool
 		PR        *Project
-		PV        *Project_view
+		PV        *ProjectView
 		NumGroups int
 		Ax        string
 		Pkey      string
@@ -314,10 +311,10 @@ func Assign_treatment(w http.ResponseWriter,
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
 	template_values.Ax = ax
-	template_values.PR = PR
-	template_values.PV = PV
-	template_values.NumGroups = len(PR.GroupNames)
-	template_values.Pkey = Pkey
+	template_values.PR = proj
+	template_values.PV = pview
+	template_values.NumGroups = len(proj.GroupNames)
+	template_values.Pkey = pkey
 
 	tmpl, err := template.ParseFiles("header.html",
 		"assign_treatment.html")

@@ -10,11 +10,11 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .Project.Name }}<br>
-      <b>Treatment groups:</b> {{ .Project_view.GroupNames }} ({{.NumGroups}} groups)<br>
-      <b>Sampling rates:</b> {{ .Project_view.SamplingRates }}
+      <b>Treatment groups:</b> {{ .ProjectView.GroupNames }} ({{.NumGroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .ProjectView.SamplingRates }}
       <br>
       <br>
-      {{ if .Any_vars }}
+      {{ if .AnyVars }}
       <p><b>Important note:</b> You entered the following data for a
 	subject who is about to be assigned to a treatment group.  Check
 	this information carefully before proceeding.
@@ -24,7 +24,7 @@
       {{ end }}
       <br>
       <form action="/assign_treatment" method="post">
-	{{ if .Any_vars }}
+	{{ if .AnyVars }}
 	<div class="outer">
 	  <div class="table1">
             <div class="title">

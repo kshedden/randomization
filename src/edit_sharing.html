@@ -11,7 +11,7 @@
       <br>
       <b>Project name:</b> {{ .ProjectName }}<br><br>
       <form action="/edit_sharing_confirm" method="post">
-	{{ if .Any_shared_users }}
+	{{ if .AnySharedUsers }}
 	The project will no longer be shared with anyone who is selected below.<br><br>
 	<div class="table1">
 	  <table class="hor-minimalist-b">
@@ -24,10 +24,9 @@
               </tr>
 	    </thead>
 	    <tbody>
-	      {{ range .Shared_users }}
+	      {{ range .SharedUsers }}
               <tr>
-		<td><input type="checkbox" value="{{.}}"
-                           name="remove_users"/>
+		<td><input type="checkbox" value="{{.}}" name="remove_users"/>
 		</td>
 		<td>{{.}}</td>
               </tr>
@@ -38,7 +37,7 @@
 	{{ else }}
 	This project is not currently shared.
 	{{ end }}
-	{{ if .Any_shared_users }}
+	{{ if .AnySharedUsers }}
 	<p>Share with these additional people:<br>
 	  {{ else }}
 	<p>Share with these people:<br>

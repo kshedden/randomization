@@ -3,7 +3,6 @@ package randomization
 import (
 	"appengine"
 	"appengine/user"
-	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
@@ -26,35 +25,32 @@ func Edit_sharing(w http.ResponseWriter,
 	project_name := shr[1]
 
 	if strings.ToLower(owner) != strings.ToLower(user.String()) {
-		Msg := "Only the owner of a project can manage sharing."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "Only the owner of a project can manage sharing."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
-	Shared_users, err := Get_shared_users(pkey, &c)
+	shared_users, err := Get_shared_users(pkey, &c)
 	if err != nil {
-		Msg := "Datastore error: unable to retrieve sharing information."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-		c.Errorf("Can't retrieve sharing: %v %v", project_name, owner)
-		return
+		shared_users = make([]string, 0)
+		c.Infof("Failed to retrieve sharing: %v %v", project_name, owner)
 	}
 
 	type TV struct {
-		User             string
-		LoggedIn         bool
-		Shared_users     []string
-		Any_shared_users bool
-		ProjectName      string
-		Pkey             string
+		User           string
+		LoggedIn       bool
+		SharedUsers    []string
+		AnySharedUsers bool
+		ProjectName    string
+		Pkey           string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.Shared_users = Shared_users
-	template_values.Any_shared_users = len(Shared_users) > 0
+	template_values.SharedUsers = shared_users
+	template_values.AnySharedUsers = len(shared_users) > 0
 	template_values.ProjectName = project_name
 	template_values.Pkey = pkey
 
@@ -81,92 +77,72 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	A := strings.Split(Pkey, "::")
-	project_name := A[1]
-
-	Shared_users, err := Get_shared_users(Pkey, &c)
-	if err != nil {
-		Msg := "Datastore error: unable to retrieve sharing information."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-		return
-	}
+	spkey := strings.Split(pkey, "::")
+	project_name := spkey[1]
 
 	ap := r.FormValue("additional_people")
-	AP := []string{}
-	AP = Clean_split(ap, ",")
-	for k, x := range AP {
-		AP[k] = strings.ToLower(x)
+	add_users := []string{}
+	add_users = Clean_split(ap, ",")
+	for k, x := range add_users {
+		add_users[k] = strings.ToLower(x)
 	}
 
 	// Gmail addresses don't use @gmail.com.
-	Invalid_emails := ""
-	for k, x := range AP {
+	invalid_emails := make([]string, 0)
+	for k, x := range add_users {
 		A := strings.Split(x, "@")
-
 		if len(A) != 2 {
-			if Invalid_emails == "" {
-				Invalid_emails = x
-			} else {
-				Invalid_emails = Invalid_emails + ";" + x
-			}
-
+			invalid_emails = append(invalid_emails, x)
 		} else {
 			if A[1] == "gmail.com" {
-				AP[k] = A[0]
+				add_users[k] = A[0]
 			}
 		}
 	}
 
-	if Invalid_emails != "" {
-		Msg := "The project was not shared because the following email addresses are not valid: "
-		CL := Clean_split(Invalid_emails, ";")
-		Msg += strings.Join(CL, ", ") + "."
-		Return_msg := "Return to project"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+	if len(invalid_emails) > 0 {
+		msg := "The project was not shared because the following email addresses are not valid: "
+		msg += strings.Join(invalid_emails, ", ") + "."
+		return_msg := "Return to project"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	err = Add_sharing(Pkey, AP, &c)
+	var err error
+	err = Add_sharing(pkey, add_users, &c)
 	if err != nil {
-		Msg := "Datastore error: unable to update sharing information."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "Datastore error: unable to update sharing information."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		c.Errorf("Edit_sharing_confirm [1]: %v", err)
 		return
 	}
 
 	remove_users := r.Form["remove_users"]
-	err = Remove_sharing(Pkey, remove_users, &c)
+	err = Remove_sharing(pkey, remove_users, &c)
 	if err != nil {
-		Msg := "Datastore error: unable to update sharing information."
-		Return_msg := "Return to dashboard"
-		fmt.Printf("\n\n2: %v\n\n", err)
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "Datastore error: unable to update sharing information."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		c.Errorf("Edit_sharing_confirm [2]: %v", err)
 		return
 	}
 
 	type TV struct {
-		User             string
-		LoggedIn         bool
-		ProjectName      string
-		Shared_users     []string
-		Any_shared_users bool
-		Pkey             string
+		User        string
+		LoggedIn    bool
+		ProjectName string
+		Pkey        string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.Shared_users = Shared_users
-	template_values.Any_shared_users = len(Shared_users) > 0
 	template_values.ProjectName = project_name
-	template_values.Pkey = Pkey
+	template_values.Pkey = pkey
 
 	tmpl, err := template.ParseFiles("header.html",
 		"edit_sharing_confirm.html")

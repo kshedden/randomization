@@ -23,17 +23,17 @@ func Delete_project_step1(w http.ResponseWriter,
 
 	_, projlist, err := GetProjects(user.String(), false, &c)
 	if err != nil {
-		Msg := "A datastore error occured, your projects cannot be retrieved."
+		msg := "A datastore error occured, your projects cannot be retrieved."
 		c.Errorf("Delete_project_step1: %v", err)
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
 	if len(projlist) == 0 {
-		Msg := "You are not the owner of any projects.  A project can only be deleted by its owner."
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		msg := "You are not the owner of any projects.  A project can only be deleted by its owner."
+		return_msg := "Return to dashboard"
+		Message_page(w, r, user, msg, return_msg, "/dashboard")
 		return
 	}
 
@@ -162,8 +162,7 @@ func Delete_project_step3(w http.ResponseWriter,
 	// Delete from each user's SharingByUser record.
 	for _, user1 := range Shared_with {
 		var sbuser SharingByUser
-		key := datastore.NewKey(c, "SharingByUser",
-			strings.ToLower(user1), 0, nil)
+		key := datastore.NewKey(c, "SharingByUser", strings.ToLower(user1), 0, nil)
 		err := datastore.Get(c, key, &sbuser)
 		if err != nil {
 			c.Errorf("Delete_project_step3 [6]: %v", err)

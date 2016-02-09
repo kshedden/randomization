@@ -1,15 +1,12 @@
 package randomization
 
 import (
-	//	"fmt"
-	"time"
-	//	"strconv"
-	"appengine/user"
-	"net/http"
-	//	"appengine/datastore"
 	"appengine"
+	"appengine/user"
 	"html/template"
+	"net/http"
 	"strings"
+	"time"
 )
 
 // View_comment
@@ -22,16 +19,14 @@ func View_comments(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	PR, _ := Get_project_from_key(pkey, &c)
 	PV := Format_project(PR)
 
 	for _, c := range PV.Comments {
@@ -43,7 +38,7 @@ func View_comments(w http.ResponseWriter,
 		User         string
 		LoggedIn     bool
 		PR           *Project
-		PV           *Project_view
+		PV           *ProjectView
 		Pkey         string
 		Any_comments bool
 	}
@@ -54,7 +49,7 @@ func View_comments(w http.ResponseWriter,
 	template_values.PR = PR
 	template_values.PV = PV
 	template_values.Any_comments = len(PR.Comments) > 0
-	template_values.Pkey = Pkey
+	template_values.Pkey = pkey
 
 	tmpl, err := template.ParseFiles("header.html",
 		"view_comments.html")
@@ -80,32 +75,30 @@ func Add_comment(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
-	PV := Format_project(PR)
+	proj, _ := Get_project_from_key(pkey, &c)
+	PV := Format_project(proj)
 
 	type TV struct {
 		User     string
 		LoggedIn bool
 		PR       *Project
-		PV       *Project_view
+		PV       *ProjectView
 		Pkey     string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.PR = PR
+	template_values.PR = proj
 	template_values.PV = PV
-	template_values.Pkey = Pkey
+	template_values.Pkey = pkey
 
 	tmpl, err := template.ParseFiles("header.html",
 		"add_comment.html")
@@ -131,26 +124,32 @@ func Confirm_add_comment(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error, unable to add comment."
+		return_msg := "Return to project"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
+		c.Errorf("Confirm_add_comment [1]: %v", err)
+		return
+	}
 
 	comment_text := r.FormValue("comment_text")
 	comment_text = strings.TrimSpace(comment_text)
 	comment_lines := strings.Split(comment_text, "\n")
 
 	if len(comment_text) == 0 {
-		Msg := "No comment was entered."
-		Return_msg := "Return to project"
-		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+		msg := "No comment was entered."
+		return_msg := "Return to project"
+		Message_page(w, r, user, msg, return_msg,
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -162,12 +161,12 @@ func Confirm_add_comment(w http.ResponseWriter,
 	comment.Date = t.Format("2006-1-2")
 	comment.Time = t.Format("3:04pm")
 	comment.Comment = comment_lines
-	PR.Comments = append(PR.Comments, comment)
+	proj.Comments = append(proj.Comments, comment)
 
-	Store_project(PR, Pkey, &c)
+	Store_project(proj, pkey, &c)
 
-	Msg := "Your comment has been added to the project."
-	Return_msg := "Return to project"
-	Message_page(w, r, user, Msg, Return_msg,
-		"/project_dashboard?pkey="+Pkey)
+	msg := "Your comment has been added to the project."
+	return_msg := "Return to project"
+	Message_page(w, r, user, msg, return_msg,
+		"/project_dashboard?pkey="+pkey)
 }

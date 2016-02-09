@@ -12,12 +12,12 @@
 	<br>
 	Are you sure that you want to change the treatment assignment
 	of subject <b>{{.SubjectId}}</b> from
-	<b>{{.Current_group_name}}</b> to <b>{{.New_group_name}}</b>?
+	<b>{{.CurrentGroupName}}</b> to <b>{{.NewGroupName}}</b>?
 	<br><br>
 	<input type="submit" value="Confirm">
 	<input type="hidden" name="pkey" value="{{.Pkey}}">
 	<input type="hidden" name="subject_id" value="{{.SubjectId}}">
-	<input type="hidden" name="new_group_name" value="{{.New_group_name}}">
+	<input type="hidden" name="new_group_name" value="{{.NewGroupName}}">
       </form>
       <br>
       <a href="/project_dashboard?pkey={{.Pkey}}">Cancel and return to project dashboard</a><br>
