@@ -1,15 +1,13 @@
 package randomization
 
 import (
-	"fmt"
-	"time"
-	//	"strconv"
-	"appengine/user"
-	"net/http"
-	//	"appengine/datastore"
 	"appengine"
+	"appengine/user"
+	"fmt"
 	"html/template"
+	"net/http"
 	"strings"
+	"time"
 )
 
 // Remove_subject
@@ -22,9 +20,7 @@ func Remove_subject(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
-
 	Pkey := r.FormValue("pkey")
 
 	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
@@ -41,7 +37,7 @@ func Remove_subject(w http.ResponseWriter,
 		return
 	}
 
-	if PR.Store_RawData == false {
+	if PR.StoreRawData == false {
 		Msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
@@ -51,22 +47,22 @@ func Remove_subject(w http.ResponseWriter,
 
 	type TV struct {
 		User                 string
-		Logged_in            bool
+		LoggedIn             bool
 		Pkey                 string
-		Project_name         string
+		ProjectName          string
 		Any_removed_subjects bool
-		Removed_subjects     string
+		RemovedSubjects      string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Pkey = Pkey
-	template_values.Project_name = PR.Name
+	template_values.ProjectName = PR.Name
 
-	if len(PR.Removed_subjects) > 0 {
+	if len(PR.RemovedSubjects) > 0 {
 		template_values.Any_removed_subjects = true
-		template_values.Removed_subjects = strings.Join(PR.Removed_subjects, ", ")
+		template_values.RemovedSubjects = strings.Join(PR.RemovedSubjects, ", ")
 	} else {
 		template_values.Any_removed_subjects = false
 	}
@@ -101,11 +97,11 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	subject_id := r.FormValue("subject_id")
 
 	type TV struct {
-		User         string
-		Logged_in    bool
-		Pkey         string
-		Subject_id   string
-		Project_name string
+		User        string
+		LoggedIn    bool
+		Pkey        string
+		SubjectId   string
+		ProjectName string
 	}
 
 	PR, _ := Get_project_from_key(Pkey, &c)
@@ -119,7 +115,7 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	}
 
 	// Check if the subject has already been removed
-	for _, s := range PR.Removed_subjects {
+	for _, s := range PR.RemovedSubjects {
 		if s == subject_id {
 			Msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subject_id)
 			Return_msg := "Return to project"
@@ -132,7 +128,7 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	// Check if the subject exists
 	found := false
 	for _, rec := range PR.RawData {
-		if rec.Subject_id == subject_id {
+		if rec.SubjectId == subject_id {
 			found = true
 			break
 		}
@@ -147,10 +143,10 @@ func Remove_subject_confirm(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
-	template_values.Subject_id = subject_id
+	template_values.LoggedIn = user != nil
+	template_values.SubjectId = subject_id
 	template_values.Pkey = Pkey
-	template_values.Project_name = PR.Name
+	template_values.ProjectName = PR.Name
 
 	tmpl, err := template.ParseFiles("header.html",
 		"remove_subject_confirm.html")
@@ -194,7 +190,7 @@ func Remove_subject_completed(w http.ResponseWriter,
 		return
 	}
 
-	if PR.Store_RawData == false {
+	if PR.StoreRawData == false {
 		Msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
@@ -206,13 +202,13 @@ func Remove_subject_completed(w http.ResponseWriter,
 	found := false
 	var remove_rec *DataRecord
 	for _, rec := range PR.RawData {
-		if rec.Subject_id == subject_id {
+		if rec.SubjectId == subject_id {
 			rec.Included = false
 			remove_rec = rec
 			found = true
 		}
 	}
-	PR.Removed_subjects = append(PR.Removed_subjects, subject_id)
+	PR.RemovedSubjects = append(PR.RemovedSubjects, subject_id)
 
 	comment := new(Comment)
 	comment.Person = user.String()
@@ -229,7 +225,7 @@ func Remove_subject_completed(w http.ResponseWriter,
 	}
 
 	Remove_from_aggregate(remove_rec, PR)
-	PR.Num_assignments -= 1
+	PR.NumAssignments -= 1
 	Store_project(PR, Pkey, &c)
 
 	Msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subject_id)

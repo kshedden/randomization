@@ -14,13 +14,13 @@ import (
 )
 
 type DataRecord struct {
-	Subject_id     string
-	Assigned_time  time.Time
-	Assigned_group string
-	Current_group  string
-	Included       bool
-	Data           []string
-	Assigner       string
+	SubjectId     string
+	AssignedTime  time.Time
+	AssignedGroup string
+	CurrentGroup  string
+	Included      bool
+	Data          []string
+	Assigner      string
 }
 
 type Project struct {
@@ -34,7 +34,7 @@ type Project struct {
 	Name string
 
 	// The names of the groups
-	Group_names []string
+	GroupNames  []string
 	Variables   []Variable
 	Assignments []int
 	Data        [][][]float64
@@ -47,88 +47,89 @@ type Project struct {
 	Modified time.Time
 
 	// If true, store the individual-level data, otherwise only store aggregates
-	Store_RawData bool
+	StoreRawData bool
 
 	// The individual-level data, if stored
 	RawData []*DataRecord
 
 	// The number of subjects who have had assignments made
-	Num_assignments int
+	NumAssignments int
 
-	Removed_subjects []string
+	RemovedSubjects []string
 
 	// If true, the project is currently open for enrollment
 	Open bool
 
 	// The sampling rates for each treatment group.
-	Sampling_rates []float64
+	SamplingRates []float64
 }
 
-// Encoded_Project is a version of Project that can be stored in the
-// datastore.
-type Encoded_Project struct {
-	Owner            string
-	Created          time.Time
-	Name             string
-	Group_names      []byte
-	Variables        []byte
-	Assignments      []int
-	Data             []byte
-	Bias             int
-	Comments         []byte
-	Modified         time.Time
-	Store_RawData    bool
-	RawData          []byte
-	Num_assignments  int
-	Removed_subjects []string
-	Open             bool
-	Sampling_rates   []float64
+// EncodedProject is a version of Project that can be stored in the
+// datastore.  Appengine datastore doesn't handle structs containing
+// slices of other structs.
+type EncodedProject struct {
+	Owner           string
+	Created         time.Time
+	Name            string
+	GroupNames      []byte
+	Variables       []byte
+	Assignments     []int
+	Data            []byte
+	Bias            int
+	Comments        []byte
+	Modified        time.Time
+	StoreRawData    bool
+	RawData         []byte
+	NumAssignments  int
+	RemovedSubjects []string
+	Open            bool
+	SamplingRates   []float64
 }
 
-type Encoded_Project_view struct {
-	Owner            string
-	Created_date     string
-	Created_time     string
-	Name             string
-	Key              string
-	Group_names      []string
-	Index            int
-	Assignments      []int
-	Data             []byte
-	Bias             int
-	Comments         []*Comment
-	Modified_date    string
-	Modified_time    string
-	Modified_ever    bool
-	Store_RawData    bool
-	RawData          []byte
-	Num_assignments  int
-	Removed_subjects []string
-	Open             bool
-	Sampling_rates   string
+type EncodedProjectView struct {
+	Owner           string
+	CreatedDate     string
+	CreatedTime     string
+	Name            string
+	Key             string
+	GroupNames      []string
+	Index           int
+	Assignments     []int
+	Data            []byte
+	Bias            int
+	Comments        []*Comment
+	ModifiedDate    string
+	ModifiedTime    string
+	ModifiedEver    bool
+	StoreRawData    bool
+	RawData         []byte
+	NumAssignments  int
+	RemovedSubjects []string
+	Open            bool
+	SamplingRates   string
 }
 
 // Project_view is a printable version of Project.
 type Project_view struct {
-	Owner            string
-	Created_date     string
-	Created_time     string
-	Group_names      string
-	Name             string
-	Variables        []Variable_view
-	Key              string
-	Assignments      []int
-	Data             [][][]float64
-	Bias             string
-	Comments         []*Comment
-	Modified_date    string
-	Modified_time    string
-	Store_RawData    bool
-	RawData          []byte
-	Num_assignments  int
-	Removed_subjects []string
-	Open             bool
-	Sampling_rates   string
+	Owner           string
+	CreatedDate     string
+	CreatedTime     string
+	GroupNames      string
+	Name            string
+	Variables       []Variable_view
+	Key             string
+	Assignments     []int
+	Data            [][][]float64
+	Bias            string
+	Comments        []*Comment
+	ModifiedDate    string
+	ModifiedTime    string
+	StoreRawData    bool
+	RawData         []byte
+	NumAssignments  int
+	RemovedSubjects []string
+	Open            bool
+	SamplingRates   string
 }
 
 // Variable contains information about one variable that will be used
@@ -149,18 +150,18 @@ type Variable_view struct {
 	Func   string
 }
 
-// Sharing_by_user is a record of all projects to which the given user
+// SharingByUser is a record of all projects to which the given user
 // has access.
-type Sharing_by_user struct {
+type SharingByUser struct {
 	User     string
 	Projects string // Comma separated list of projects
 }
 
-// Sharing_by_project is a record of all users who have access to the
+// SharingByProject is a record of all users who have access to the
 // given project.
-type Sharing_by_project struct {
-	Project_name string
-	Users        string
+type SharingByProject struct {
+	ProjectName string
+	Users       string
 }
 
 // Comment
@@ -177,33 +178,33 @@ type Comment struct {
 // empty list, rather than a list containing an empty string as its
 // sole element.  Leading and trailing whitespace is removed from each
 // element of the returned list.
-func Clean_split(S string, sep string) []string {
+func Clean_split(s string, sep string) []string {
 
-	if len(S) == 0 {
+	if len(s) == 0 {
 		return []string{}
 	}
 
-	A := strings.Split(S, sep)
+	parts := strings.Split(s, sep)
 
-	for i, v := range A {
-		A[i] = strings.TrimSpace(v)
+	for i, v := range parts {
+		parts[i] = strings.TrimSpace(v)
 	}
 
-	return A
+	return parts
 }
 
 // Copy_encoded_project creates a copy of a given project and returns
 // it.  This is not necessarily a deep copy.
-func Copy_encoded_project(proj *Encoded_Project) *Encoded_Project {
+func Copy_encoded_project(proj *EncodedProject) *EncodedProject {
 
-	newproj := new(Encoded_Project)
+	newproj := new(EncodedProject)
 
 	newproj.Owner = proj.Owner
 	newproj.Name = proj.Name
 	newproj.Created = time.Now()
 
-	newproj.Group_names = make([]byte, len(proj.Group_names))
-	copy(newproj.Group_names, proj.Group_names)
+	newproj.GroupNames = make([]byte, len(proj.GroupNames))
+	copy(newproj.GroupNames, proj.GroupNames)
 
 	newproj.Variables = make([]byte, len(proj.Variables))
 	copy(newproj.Variables, proj.Variables)
@@ -220,20 +221,20 @@ func Copy_encoded_project(proj *Encoded_Project) *Encoded_Project {
 	copy(newproj.Comments, proj.Comments)
 
 	newproj.Modified = proj.Modified
-	newproj.Store_RawData = proj.Store_RawData
+	newproj.StoreRawData = proj.StoreRawData
 
 	newproj.RawData = make([]byte, len(proj.RawData))
 	copy(newproj.RawData, proj.RawData)
 
-	newproj.Num_assignments = proj.Num_assignments
+	newproj.NumAssignments = proj.NumAssignments
 
-	newproj.Removed_subjects = make([]string, len(proj.Removed_subjects))
-	copy(newproj.Removed_subjects, proj.Removed_subjects)
+	newproj.RemovedSubjects = make([]string, len(proj.RemovedSubjects))
+	copy(newproj.RemovedSubjects, proj.RemovedSubjects)
 
 	newproj.Open = proj.Open
 
-	newproj.Sampling_rates = make([]float64, len(proj.Sampling_rates))
-	copy(newproj.Sampling_rates, proj.Sampling_rates)
+	newproj.SamplingRates = make([]float64, len(proj.SamplingRates))
+	copy(newproj.SamplingRates, proj.SamplingRates)
 
 	return (newproj)
 }
@@ -242,24 +243,24 @@ func Copy_encoded_project(proj *Encoded_Project) *Encoded_Project {
 func Get_project_from_key(pkey string,
 	c *appengine.Context) (*Project, error) {
 
-	Key := datastore.NewKey(*c, "Encoded_Project", pkey, 0, nil)
-	var EP Encoded_Project
-	err := datastore.Get(*c, Key, &EP)
+	Key := datastore.NewKey(*c, "EncodedProject", pkey, 0, nil)
+	var eproj EncodedProject
+	err := datastore.Get(*c, Key, &eproj)
 	if err != nil {
 		(*c).Errorf("Project_dashboard: %v", err)
 		return nil, err
 	}
 
-	project := Decode_Project(&EP)
+	project := Decode_Project(&eproj)
 
 	// This field was added later, so may be missing on some
 	// projects.  Provide a default here.
-	if project.Sampling_rates == nil {
-		arr := make([]float64, len(project.Group_names))
+	if project.SamplingRates == nil {
+		arr := make([]float64, len(project.GroupNames))
 		for i, _ := range arr {
 			arr[i] = 1.0
 		}
-		project.Sampling_rates = arr
+		project.SamplingRates = arr
 	}
 
 	return project, nil
@@ -267,119 +268,119 @@ func Get_project_from_key(pkey string,
 
 // Encode_Project takes a Project struct and converts it into a form
 // that can be stored in the datastore.
-func Encode_Project(P *Project) (*Encoded_Project, error) {
+func Encode_Project(proj *Project) (*EncodedProject, error) {
 
-	EP := new(Encoded_Project)
+	eproj := new(EncodedProject)
 
-	EP.Owner = P.Owner
-	EP.Created = P.Created
-	EP.Name = P.Name
+	eproj.Owner = proj.Owner
+	eproj.Created = proj.Created
+	eproj.Name = proj.Name
 
-	dc, err := json.Marshal(P.Data)
+	dc, err := json.Marshal(proj.Data)
 	if err != nil {
 		return nil, err
 	}
-	EP.Data = dc
+	eproj.Data = dc
 
-	EP.Assignments = P.Assignments
-	EP.Bias = P.Bias
-	EP.Modified = P.Modified
-	EP.Store_RawData = P.Store_RawData
-	EP.Num_assignments = P.Num_assignments
-	EP.Removed_subjects = P.Removed_subjects
-	EP.Open = P.Open
-	EP.Sampling_rates = P.Sampling_rates
+	eproj.Assignments = proj.Assignments
+	eproj.Bias = proj.Bias
+	eproj.Modified = proj.Modified
+	eproj.StoreRawData = proj.StoreRawData
+	eproj.NumAssignments = proj.NumAssignments
+	eproj.RemovedSubjects = proj.RemovedSubjects
+	eproj.Open = proj.Open
+	eproj.SamplingRates = proj.SamplingRates
 
 	// Group names
-	x1, err := json.Marshal(P.Group_names)
+	x1, err := json.Marshal(proj.GroupNames)
 	if err != nil {
 		return nil, err
 	}
-	EP.Group_names = x1
+	eproj.GroupNames = x1
 
 	// Variables
-	x2, err := json.Marshal(P.Variables)
+	x2, err := json.Marshal(proj.Variables)
 	if err != nil {
 		return nil, err
 	}
-	EP.Variables = x2
+	eproj.Variables = x2
 
 	// Raw data
-	if P.Store_RawData {
-		x3, err := json.Marshal(P.RawData)
+	if proj.StoreRawData {
+		x3, err := json.Marshal(proj.RawData)
 		if err != nil {
 			return nil, err
 		}
-		EP.RawData = x3
+		eproj.RawData = x3
 	}
 
 	// Comments
-	x4, err := json.Marshal(P.Comments)
+	x4, err := json.Marshal(proj.Comments)
 	if err != nil {
 		return nil, err
 	}
-	EP.Comments = x4
+	eproj.Comments = x4
 
-	return EP, nil
+	return eproj, nil
 }
 
 // Store_project
-func Store_project(Project *Project,
+func Store_project(proj *Project,
 	project_key string,
 	c *appengine.Context) error {
 
-	EP, err := Encode_Project(Project)
+	eproj, err := Encode_Project(proj)
 	if err != nil {
 		return err
 	}
 
-	Key := datastore.NewKey(*c, "Encoded_Project", project_key, 0, nil)
-	_, err = datastore.Put(*c, Key, EP)
+	pkey := datastore.NewKey(*c, "EncodedProject", project_key, 0, nil)
+	_, err = datastore.Put(*c, pkey, eproj)
 	return err
 }
 
 // Decode_Project takes a project in its encoded form (storable in the
 // datastore) and converts it to a Project struct.
-func Decode_Project(EP *Encoded_Project) *Project {
+func Decode_Project(eproj *EncodedProject) *Project {
 
-	P := new(Project)
+	proj := new(Project)
 
-	P.Owner = EP.Owner
-	P.Created = EP.Created
-	P.Name = EP.Name
+	proj.Owner = eproj.Owner
+	proj.Created = eproj.Created
+	proj.Name = eproj.Name
 
 	var data [][][]float64
-	json.Unmarshal(EP.Data, &data)
-	P.Data = data
+	json.Unmarshal(eproj.Data, &data)
+	proj.Data = data
 
-	P.Assignments = EP.Assignments
-	P.Bias = EP.Bias
-	P.Store_RawData = EP.Store_RawData
-	P.Num_assignments = EP.Num_assignments
-	P.Removed_subjects = EP.Removed_subjects
-	P.Modified = EP.Modified
-	P.Open = EP.Open
-	P.Sampling_rates = EP.Sampling_rates
+	proj.Assignments = eproj.Assignments
+	proj.Bias = eproj.Bias
+	proj.StoreRawData = eproj.StoreRawData
+	proj.NumAssignments = eproj.NumAssignments
+	proj.RemovedSubjects = eproj.RemovedSubjects
+	proj.Modified = eproj.Modified
+	proj.Open = eproj.Open
+	proj.SamplingRates = eproj.SamplingRates
 
 	var S []string
-	json.Unmarshal(EP.Group_names, &S)
-	P.Group_names = S
+	json.Unmarshal(eproj.GroupNames, &S)
+	proj.GroupNames = S
 
 	var V []Variable
-	json.Unmarshal(EP.Variables, &V)
-	P.Variables = V
+	json.Unmarshal(eproj.Variables, &V)
+	proj.Variables = V
 
 	var C []*Comment
-	json.Unmarshal(EP.Comments, &C)
-	P.Comments = C
+	json.Unmarshal(eproj.Comments, &C)
+	proj.Comments = C
 
-	if EP.Store_RawData {
+	if eproj.StoreRawData {
 		var rawdata []*DataRecord
-		json.Unmarshal(EP.RawData, &rawdata)
-		P.RawData = rawdata
+		json.Unmarshal(eproj.RawData, &rawdata)
+		proj.RawData = rawdata
 	}
 
-	return P
+	return proj
 }
 
 // Format_project returns a Project_view object corresponding to the
@@ -396,90 +397,90 @@ func Format_project(project *Project) *Project_view {
 	t := project.Created
 	loc, _ := time.LoadLocation("America/New_York")
 	t = t.In(loc)
-	B.Created_date = t.Format("2006-1-2")
-	B.Created_time = t.Format("3:04pm")
-	B.Group_names = strings.Join(project.Group_names, ",")
+	B.CreatedDate = t.Format("2006-1-2")
+	B.CreatedTime = t.Format("3:04pm")
+	B.GroupNames = strings.Join(project.GroupNames, ",")
 	B.Variables = make([]Variable_view, len(project.Variables))
 
-	rate_str := make([]string, len(project.Sampling_rates))
-	for i, x := range project.Sampling_rates {
+	rate_str := make([]string, len(project.SamplingRates))
+	for i, x := range project.SamplingRates {
 		rate_str[i] = fmt.Sprintf("%.0f", x)
 	}
-	B.Sampling_rates = strings.Join(rate_str, ",")
+	B.SamplingRates = strings.Join(rate_str, ",")
 
 	for i, pv := range project.Variables {
 		B.Variables[i] = Format_Variable(pv)
 	}
-	B.Removed_subjects = project.Removed_subjects
+	B.RemovedSubjects = project.RemovedSubjects
 	B.Open = project.Open
 
 	t = project.Modified
 	loc, _ = time.LoadLocation("America/New_York")
 	t = t.In(loc)
-	B.Modified_date = t.Format("2006-1-2")
-	B.Modified_time = t.Format("3:04pm")
+	B.ModifiedDate = t.Format("2006-1-2")
+	B.ModifiedTime = t.Format("3:04pm")
 
 	return B
 }
 
-// Format_Encoded_Project returns an Encoded_Project_view object
+// Format_EncodedProject returns an EncodedProjectView object
 // corresponding to the given Encoded_project object.
-func Format_encoded_project(enc_project *Encoded_Project) *Encoded_Project_view {
+func Format_encoded_project(enc_project *EncodedProject) *EncodedProjectView {
 
-	view := new(Encoded_Project_view)
+	view := new(EncodedProjectView)
 	view.Owner = enc_project.Owner
 	view.Name = enc_project.Name
 	view.Data = enc_project.Data
 	view.Assignments = enc_project.Assignments
 	view.Bias = enc_project.Bias
 	view.Key = enc_project.Owner + "::" + enc_project.Name
-	view.Num_assignments = enc_project.Num_assignments
+	view.NumAssignments = enc_project.NumAssignments
 
 	var s []string
-	json.Unmarshal(enc_project.Group_names, &s)
-	view.Group_names = s
+	json.Unmarshal(enc_project.GroupNames, &s)
+	view.GroupNames = s
 
-	view.Removed_subjects = enc_project.Removed_subjects
+	view.RemovedSubjects = enc_project.RemovedSubjects
 	//view.Comments = enc_project.Comments
 	view.Open = enc_project.Open
 
-	rate_str := make([]string, len(enc_project.Sampling_rates))
-	for i, x := range enc_project.Sampling_rates {
+	rate_str := make([]string, len(enc_project.SamplingRates))
+	for i, x := range enc_project.SamplingRates {
 		rate_str[i] = fmt.Sprintf("%.0f", x)
 	}
-	view.Sampling_rates = strings.Join(rate_str, ",")
+	view.SamplingRates = strings.Join(rate_str, ",")
 
 	// Created date
 	t := enc_project.Created
 	loc, _ := time.LoadLocation("America/New_York")
 	t = t.In(loc)
-	view.Created_date = t.Format("2006-1-2")
-	view.Created_time = t.Format("3:04pm")
+	view.CreatedDate = t.Format("2006-1-2")
+	view.CreatedTime = t.Format("3:04pm")
 
 	// Modified date
 	t = enc_project.Modified
 
 	if t.IsZero() {
-		view.Modified_ever = false
+		view.ModifiedEver = false
 	} else {
-		view.Modified_ever = true
+		view.ModifiedEver = true
 		t = t.In(loc)
-		view.Modified_date = t.Format("2006-1-2")
-		view.Modified_time = t.Format("3:04pm")
+		view.ModifiedDate = t.Format("2006-1-2")
+		view.ModifiedTime = t.Format("3:04pm")
 	}
 
 	return view
 }
 
-// Format_Encoded_Project returns an array of Encoded_Project_view
-// objects corresponding to the given array of Encoded_Project
+// Format_EncodedProject returns an array of EncodedProjectView
+// objects corresponding to the given array of EncodedProject
 // objects.
-func Format_encoded_projects(P []*Encoded_Project) []*Encoded_Project_view {
+func Format_encoded_projects(proj []*EncodedProject) []*EncodedProjectView {
 
-	n := len(P)
-	B := make([]*Encoded_Project_view, n, n)
+	n := len(proj)
+	B := make([]*EncodedProjectView, n, n)
 	for i := 0; i < n; i++ {
-		B[i] = Format_encoded_project(P[i])
+		B[i] = Format_encoded_project(proj[i])
 	}
 
 	return B
@@ -499,29 +500,29 @@ func Format_projects(projects []*Project) []*Project_view {
 
 // Format_variables returns an array of Variable_view objects
 // corresponding to the given array of Variable objects.
-func Format_variables(VA []Variable) []Variable_view {
+func Format_variables(val []Variable) []Variable_view {
 
-	VAF := make([]Variable_view, len(VA))
+	valf := make([]Variable_view, len(val))
 
-	for i, va := range VA {
-		VAF[i] = Format_Variable(va)
-		VAF[i].Index = i
+	for i, va := range val {
+		valf[i] = Format_Variable(va)
+		valf[i].Index = i
 	}
 
-	return VAF
+	return valf
 }
 
 // Format_variable returns a Variable_view object corresponding to the
 // given Variable object.
-func Format_Variable(VA Variable) Variable_view {
+func Format_Variable(va Variable) Variable_view {
 
-	var VV Variable_view
-	VV.Name = VA.Name
-	VV.Levels = strings.Join(VA.Levels, ",")
-	VV.Weight = fmt.Sprintf("%.0f", VA.Weight)
-	VV.Func = VA.Func
+	var vv Variable_view
+	vv.Name = va.Name
+	vv.Levels = strings.Join(va.Levels, ",")
+	vv.Weight = fmt.Sprintf("%.0f", va.Weight)
+	vv.Func = va.Func
 
-	return VV
+	return vv
 }
 
 // Get_shared_users returns a list of user id's for for users who are
@@ -529,9 +530,9 @@ func Format_Variable(VA Variable) Variable_view {
 func Get_shared_users(project_name string,
 	c *appengine.Context) ([]string, error) {
 
-	Key := datastore.NewKey(*c, "Sharing_by_project",
+	Key := datastore.NewKey(*c, "SharingByProject",
 		project_name, 0, nil)
-	var SP Sharing_by_project
+	var SP SharingByProject
 	err := datastore.Get(*c, Key, &SP)
 	if err == datastore.ErrNoSuchEntity {
 		return []string{}, nil
@@ -555,13 +556,13 @@ func Add_sharing(project_name string,
 		return nil
 	}
 
-	// Update Sharing_by_project.
-	Key := datastore.NewKey(*c, "Sharing_by_project", project_name, 0, nil)
-	SP := new(Sharing_by_project)
+	// Update SharingByProject.
+	Key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
+	SP := new(SharingByProject)
 	err := datastore.Get(*c, Key, SP)
 	if err == datastore.ErrNoSuchEntity {
-		SP = new(Sharing_by_project)
-		SP.Project_name = project_name
+		SP = new(SharingByProject)
+		SP.ProjectName = project_name
 		SP.Users = strings.Join(user_names, ",")
 	} else if err != nil {
 		return err
@@ -588,14 +589,14 @@ func Add_sharing(project_name string,
 		return err
 	}
 
-	// Update Sharing_by_user.
+	// Update SharingByUser.
 	for _, user_name := range user_names {
-		Key = datastore.NewKey(*c, "Sharing_by_user",
+		Key = datastore.NewKey(*c, "SharingByUser",
 			strings.ToLower(user_name), 0, nil)
-		SU := new(Sharing_by_user)
+		SU := new(SharingByUser)
 		err := datastore.Get(*c, Key, SU)
 		if err == datastore.ErrNoSuchEntity {
-			SU = new(Sharing_by_user)
+			SU = new(SharingByUser)
 			SU.User = user_name
 			SU.Projects = project_name
 		} else if err != nil {
@@ -624,74 +625,82 @@ func Add_sharing(project_name string,
 	return nil
 }
 
-// Remove_sharing
+// unique_svec returns an array containing the unique elements of the
+// given array.
+func unique_svec(vec []string) []string {
+	mp := make(map[string]bool)
+	for _, x := range vec {
+		mp[x] = true
+	}
+	uvec := make([]string, len(mp))
+	i := 0
+	for k, _ := range mp {
+		uvec[i] = k
+		i++
+	}
+	return uvec
+}
+
+// sdiff returns the given vector with the elements in rm removed.
+func sdiff(vec []string, rm map[string]bool) []string {
+
+	dvec := make([]string, 0, len(vec))
+	for _, v := range vec {
+		_, ok := rm[v]
+		if !ok {
+			dvec = append(dvec, v)
+		}
+	}
+	return dvec
+}
+
+// Remove_sharing removes the given users from the access list for the given project.
 func Remove_sharing(project_name string,
 	user_names []string,
 	c *appengine.Context) error {
 
 	// Map whose keys are the users to remove.
-	h := make(map[string]bool)
+	rmu := make(map[string]bool)
 	for i := 0; i < len(user_names); i++ {
-		h[user_names[i]] = true
+		rmu[user_names[i]] = true
 	}
 
-	// Update Sharing_by_project.
-	Key := datastore.NewKey(*c, "Sharing_by_project", project_name, 0, nil)
-	SP := new(Sharing_by_project)
-	err := datastore.Get(*c, Key, SP)
+	// Update SharingByProject.
+	Key := datastore.NewKey(*c, "SharingByProject", project_name, 0, nil)
+	sproj := new(SharingByProject)
+	err := datastore.Get(*c, Key, sproj)
 	if err == datastore.ErrNoSuchEntity {
 		// OK
 	} else if err != nil {
 		return err
 	} else {
-		U := Clean_split(SP.Users, ",")
-		m := make(map[string]bool)
-		for _, u := range U {
-			if _, ok := h[u]; !ok {
-				m[u] = true
-			}
-		}
-		A := make([]string, len(m))
-		i := 0
-		for k, _ := range m {
-			A[i] = k
-			i++
-		}
-		SP.Users = strings.Join(A, ",")
-
-		_, err = datastore.Put(*c, Key, SP)
+		users := Clean_split(sproj.Users, ",")
+		users = unique_svec(users)
+		users = sdiff(users, rmu)
+		sproj.Users = strings.Join(users, ",")
+		_, err = datastore.Put(*c, Key, sproj)
 		if err != nil {
 			return err
 		}
 	}
 
-	// Update Sharing_by_user.
-	for i := 0; i < len(user_names); i++ {
-		Key := datastore.NewKey(*c, "Sharing_by_user",
-			strings.ToLower(user_names[i]), 0, nil)
-		SU := new(Sharing_by_user)
-		err := datastore.Get(*c, Key, SU)
+	// Update SharingByUser.
+	for _, name := range user_names {
+		pkey := datastore.NewKey(*c, "SharingByUser",
+			strings.ToLower(name), 0, nil)
+		suser := new(SharingByUser)
+		err := datastore.Get(*c, pkey, suser)
 		if err == datastore.ErrNoSuchEntity {
-			// OK
+			// should not reach here
 		} else if err != nil {
 			return err
 		} else {
-			U := Clean_split(SU.Projects, ",")
-			m := make(map[string]bool)
-			for _, u := range U {
-				if u != project_name {
-					m[u] = true
-				}
-			}
-			A := make([]string, len(m))
-			i := 0
-			for k, _ := range m {
-				A[i] = k
-				i++
-			}
-			SU.Projects = strings.Join(A, ",")
+			projlist := Clean_split(suser.Projects, ",")
+			projlist = unique_svec(projlist)
+			projlist = sdiff(projlist, map[string]bool{project_name: true})
+			suser.Projects = strings.Join(projlist, ",")
 
-			_, err = datastore.Put(*c, Key, SU)
+			_, err = datastore.Put(*c, Key, suser)
 			if err != nil {
 				return err
 			}
@@ -701,55 +710,66 @@ func Remove_sharing(project_name string,
 	return nil
 }
 
-// Get_projects returns all projects owned by the given user.
-func Get_projects(user string,
+// GetProjects returns all projects owned by the given user.
+// Optionally also include projects that are shared with the user.
+func GetProjects(user string,
 	include_shared bool,
-	c *appengine.Context) ([]*datastore.Key, []*Encoded_Project, error) {
+	c *appengine.Context) ([]*datastore.Key, []*EncodedProject, error) {
 
-	q := datastore.NewQuery("Encoded_Project").
+	qr := datastore.NewQuery("EncodedProject").
 		Filter("Owner = ", user).
 		Order("-Created").Limit(100)
 
-	var PR []*Encoded_Project
-	KY, err := q.GetAll(*c, &PR)
+	keyset := make(map[string]bool)
+
+	var projlist []*EncodedProject
+	keylist, err := qr.GetAll(*c, &projlist)
 	if err != nil {
+		(*c).Errorf("GetProjects[1]: %v", err)
 		return nil, nil, err
 	}
 
 	if !include_shared {
-		return KY, PR, err
+		return keylist, projlist, err
 	}
 
-	Key := datastore.NewKey(*c, "Sharing_by_user", strings.ToLower(user),
+	for _, k := range keylist {
+		keyset[k.String()] = true
+	}
+
+	// Get project ids that are shared with this user
+	ky2 := datastore.NewKey(*c, "SharingByUser", strings.ToLower(user),
 		0, nil)
-	(*c).Infof("User=%v", user)
-	var SP Sharing_by_user
-	err = datastore.Get(*c, Key, &SP)
+	var spu SharingByUser
+	err = datastore.Get(*c, ky2, &spu)
 	if err == datastore.ErrNoSuchEntity {
-		return KY, PR, nil
+		// No projects shared with this user
+		return keylist, projlist, nil
 	}
 	if err != nil {
+		(*c).Errorf("GetProjects[2]: %v", err)
 		return nil, nil, err
 	}
-	SPV := Clean_split(SP.Projects, ",")
 
-	SEP := make([]*Encoded_Project, len(SPV))
-	SKY := make([]*datastore.Key, len(SPV))
-	for i, spv := range SPV {
-		Key = datastore.NewKey(*c, "Encoded_Project", spv, 0, nil)
-		P := new(Encoded_Project)
-		err = datastore.Get(*c, Key, P)
-		SEP[i] = P
-		SKY[i] = Key
+	// Get the shared projects
+	spvl := Clean_split(spu.Projects, ",")
+	for _, spv := range spvl {
+		ky := datastore.NewKey(*c, "EncodedProject", spv, 0, nil)
+		_, ok := keyset[ky.String()]
+		if ok {
+			continue
+		}
+		keyset[ky.String()] = true
+		pr := new(EncodedProject)
+		err = datastore.Get(*c, ky, pr)
+		if err != nil {
+			(*c).Infof("GetProjects [3]: %v\n%v", spv, err)
+			continue
+		}
+		keylist = append(keylist, ky)
+		projlist = append(projlist, pr)
 	}
-
-	KY1 := make([]*datastore.Key, len(KY)+len(SKY))
-	copy(KY1, KY)
-	copy(KY1[len(KY):], SKY)
-	PR1 := make([]*Encoded_Project, len(PR)+len(SEP))
-	copy(PR1, PR)
-	copy(PR1[len(PR):], SEP)
-	return KY1, PR1, nil
+	return keylist, projlist, nil
 }
 
 // Used when the GET/POST method is mismatched to the handler.
@@ -789,7 +809,7 @@ func Message_page(w http.ResponseWriter,
 
 	type TV struct {
 		User       string
-		Logged_in  bool
+		LoggedIn   bool
 		Msg        string
 		Return_url string
 		Return_msg string
@@ -802,7 +822,7 @@ func Message_page(w http.ResponseWriter,
 	} else {
 		template_values.User = ""
 	}
-	template_values.Logged_in = login_user != nil
+	template_values.LoggedIn = login_user != nil
 	template_values.Msg = Msg
 	template_values.Return_url = Return_url
 	template_values.Return_msg = Return_msg
@@ -813,6 +833,7 @@ func Message_page(w http.ResponseWriter,
 	}
 }
 
+// get_index returns the position of `val` within `vec`.
 func get_index(vec []string, val string) int {
 
 	for i, x := range vec {
@@ -823,18 +844,19 @@ func get_index(vec []string, val string) int {
 	return -1
 }
 
-// Remove_from_aggregate
+// Remove_from_aggregate updates the aggregate statistics (count per
+// treatment arm for each level of each variable) for the given data
+// record.
 func Remove_from_aggregate(rec *DataRecord,
 	proj *Project) {
 
-	grp_ix := get_index(proj.Group_names, rec.Current_group)
+	grp_ix := get_index(proj.GroupNames, rec.CurrentGroup)
 
 	// Update the overall assignment totals
 	proj.Assignments[grp_ix] -= 1
 
-	data := proj.Data
-
 	// Update the within-variable assignment totals
+	data := proj.Data
 	for j, va := range proj.Variables {
 		for k, lev := range va.Levels {
 			if rec.Data[j] == lev {
@@ -844,18 +866,19 @@ func Remove_from_aggregate(rec *DataRecord,
 	}
 }
 
-// Add_to_aggregate
+// Add_to_aggregate updates the aggregate statistics (count per
+// treatment arm for each level of each variable) for the given data
+// record.
 func Add_to_aggregate(rec *DataRecord,
 	proj *Project) {
 
-	grp_ix := get_index(proj.Group_names, rec.Current_group)
+	grp_ix := get_index(proj.GroupNames, rec.CurrentGroup)
 
 	// Update the overall assignment totals
 	proj.Assignments[grp_ix] += 1
 
-	data := proj.Data
-
 	// Update the within-variable assignment totals
+	data := proj.Data
 	for j, va := range proj.Variables {
 		for k, lev := range va.Levels {
 			if rec.Data[j] == lev {

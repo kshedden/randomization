@@ -10,8 +10,8 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .Name }}<br>
-      <b>Treatment groups:</b> {{ .Group_names }} ({{.Numgroups}} groups)<br>
-      <b>Sampling rates:</b> {{ .Sampling_rates }}
+      <b>Treatment groups:</b> {{ .GroupNames }} ({{.NumGroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .SamplingRates }}
       <br><br>
       <form action="/create_project_step7" method="post">
 	Enter the number of variables that will be used for treatment
@@ -19,11 +19,11 @@
 	<input type="number" name="numvar" min=0 max=500 value=1>
 	<br><br>
 	<input type="submit" value="Next">
-	<input type="hidden" name="numgroups" value="{{.Numgroups}}">
-	<input type="hidden" name="group_names" value="{{.Group_names}}">
+	<input type="hidden" name="numgroups" value="{{.NumGroups}}">
+	<input type="hidden" name="group_names" value="{{.GroupNames}}">
 	<input type="hidden" name="project_name" value="{{ .Name }}">
-	<input type="hidden" name="store_rawdata" value="{{ .Store_RawData }}">
-	<input type="hidden" name="rates" value="{{ .Sampling_rates }}">
+	<input type="hidden" name="store_rawdata" value="{{ .StoreRawData }}">
+	<input type="hidden" name="rates" value="{{ .SamplingRates }}">
       </form>
       <br>
       <a href="/dashboard">Cancel and return to dashboard</a>

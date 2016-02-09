@@ -10,10 +10,10 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .Proj_view.Name }}<br>
-      <b>Treatment groups:</b> {{ .Proj_view.Group_names }} ({{.Numgroups}} groups)<br>
-      <b>Sampling rates:</b> {{ .Proj_view.Sampling_rates }}<br>
+      <b>Treatment groups:</b> {{ .Proj_view.GroupNames }} ({{.NumGroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .Proj_view.SamplingRates }}<br>
       <b>Determinism:</b> {{ .Proj_view.Bias }}<br>
-      <b>Store complete data:</b> {{ .Store_RawData }}<br>
+      <b>Store complete data:</b> {{ .StoreRawData }}<br>
       <b>Owner:</b> {{ .Owner }}<br>
       <b>Open for enrollment:</b> {{ .Open }}<br>
       {{ if .Show_edit_sharing }}

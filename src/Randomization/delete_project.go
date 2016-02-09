@@ -1,7 +1,6 @@
 package randomization
 
 import (
-	//	"fmt"
 	"appengine"
 	"appengine/datastore"
 	"appengine/user"
@@ -20,10 +19,9 @@ func Delete_project_step1(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
 
-	_, PR, err := Get_projects(user.String(), false, &c)
+	_, projlist, err := GetProjects(user.String(), false, &c)
 	if err != nil {
 		Msg := "A datastore error occured, your projects cannot be retrieved."
 		c.Errorf("Delete_project_step1: %v", err)
@@ -32,7 +30,7 @@ func Delete_project_step1(w http.ResponseWriter,
 		return
 	}
 
-	if len(PR) == 0 {
+	if len(projlist) == 0 {
 		Msg := "You are not the owner of any projects.  A project can only be deleted by its owner."
 		Return_msg := "Return to dashboard"
 		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
@@ -40,17 +38,15 @@ func Delete_project_step1(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User      string
-		Logged_in bool
-		PRN       bool
-		PR        []*Encoded_Project_view
+		User     string
+		LoggedIn bool
+		Proj     []*EncodedProjectView
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.PR = Format_encoded_projects(PR)
-	template_values.PRN = len(PR) > 0
-	template_values.Logged_in = user != nil
+	template_values.Proj = Format_encoded_projects(projlist)
+	template_values.LoggedIn = user != nil
 
 	tmpl, err := template.ParseFiles("header.html",
 		"delete_project_step1.html")
@@ -84,25 +80,25 @@ func Delete_project_step2(w http.ResponseWriter,
 		return
 	}
 
-	Pkey := r.FormValue("project_list")
-	S := strings.Split(Pkey, "::")
+	pkey := r.FormValue("project_list")
+	svec := strings.Split(pkey, "::")
 
 	type TV struct {
-		User         string
-		Logged_in    bool
-		Project_name string
-		Pkey         string
-		Nokey        bool
+		User        string
+		LoggedIn    bool
+		ProjectName string
+		Pkey        string
+		Nokey       bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
-	template_values.Pkey = Pkey
-	if len(S) >= 2 {
-		template_values.Project_name = S[1]
+	template_values.LoggedIn = user != nil
+	template_values.Pkey = pkey
+	if len(svec) >= 2 {
+		template_values.ProjectName = svec[1]
 	}
-	template_values.Nokey = len(Pkey) == 0
+	template_values.Nokey = len(pkey) == 0
 
 	tmpl, err := template.ParseFiles("header.html",
 		"delete_project_step2.html")
@@ -128,116 +124,94 @@ func Delete_project_step3(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
-
-	Pkey := r.FormValue("Pkey")
+	pkey := r.FormValue("Pkey")
 
 	if err := r.ParseForm(); err != nil {
-		c.Errorf("Delete_proect_step3 (1): %v", err)
+		c.Errorf("Delete_project_step3 [1]: %v", err)
 		ServeError(&c, w, err)
 		return
 	}
 
-	// Delete the Sharing_by_project object, but first read the
+	// Delete the SharingByProject object, but first read the
 	// users list from it so we can delete the project from their
-	// Sharing_by_users records.
-	key := datastore.NewKey(c, "Sharing_by_project", Pkey, 0, nil)
-	var SBP Sharing_by_project
-	err := datastore.Get(c, key, &SBP)
-	if err != nil && err != datastore.ErrNoSuchEntity {
-		Msg := "A datastore error occured, the project may not have been deleted."
-		c.Errorf("Delete_project_step3 (2): %v", err)
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-		return
-	}
+	// SharingByUsers records.
+	key := datastore.NewKey(c, "SharingByProject", pkey, 0, nil)
+	var sbproj SharingByProject
 	Shared_with := make([]string, 0)
-	if err != datastore.ErrNoSuchEntity {
-		Shared_with = Clean_split(SBP.Users, ",")
+	err := datastore.Get(c, key, &sbproj)
+	if err == datastore.ErrNoSuchEntity {
+		c.Errorf("Delete_project_step3 [2]: %v", err)
+	} else if err != nil {
+		c.Errorf("Delete_project_step3 [3] %v", err)
+	} else {
+		Shared_with = Clean_split(sbproj.Users, ",")
 		err = datastore.Delete(c, key)
 		if err != nil {
-			Msg := "A datastore error occured, the project may not have been deleted."
-			c.Errorf("Delete_project_step3 (3): %v", err)
-			Return_msg := "Return to dashboard"
-			Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-			return
+			c.Errorf("Delete_project_step3 [4] %v", err)
 		}
 	}
 
 	// Delete the project.
-	key = datastore.NewKey(c, "Encoded_Project", Pkey, 0, nil)
+	key = datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
 	err = datastore.Delete(c, key)
 	if err != nil {
-		Msg := "A datastore error occured, the project may not have been deleted."
-		c.Errorf("Delete_project_step3 (4): %v", err)
-		Return_msg := "Return to dashboard"
-		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-		return
+		c.Errorf("Delete_project_step3 [5]: %v", err)
 	}
 
-	// Delete from each user's Sharing_by_user record.
+	// Delete from each user's SharingByUser record.
 	for _, user1 := range Shared_with {
-		var SBU Sharing_by_user
-		key := datastore.NewKey(c, "Sharing_by_user",
+		var sbuser SharingByUser
+		key := datastore.NewKey(c, "SharingByUser",
 			strings.ToLower(user1), 0, nil)
-		err := datastore.Get(c, key, &SBU)
+		err := datastore.Get(c, key, &sbuser)
 		if err != nil {
-			Msg := "A datastore error occured, the project may not have been deleted."
-			c.Errorf("Delete_project_step3 (5): %v", err)
-			Return_msg := "Return to dashboard"
-			Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-			return
+			c.Errorf("Delete_project_step3 [6]: %v", err)
 		}
+		Projects := Clean_split(sbuser.Projects, ",")
 
-		Projects := Clean_split(SBU.Projects, ",")
-
-		// Get the unique project keys, except for Pkey.
-		H := make(map[string]bool)
+		// Get the unique project keys, except for pkey.
+		mp := make(map[string]bool)
 		for _, x := range Projects {
-			if x != Pkey {
-				H[x] = true
+			if x != pkey {
+				mp[x] = true
 			}
 		}
-		V := make([]string, len(H))
+		vec := make([]string, len(mp))
 		jj := 0
-		for k, _ := range H {
-			V[jj] = k
+		for k, _ := range mp {
+			vec[jj] = k
 			jj += 1
 		}
-		SBU.Projects = strings.Join(V, ",")
+		sbuser.Projects = strings.Join(vec, ",")
 
-		_, err = datastore.Put(c, key, &SBU)
+		_, err = datastore.Put(c, key, &sbuser)
 		if err != nil {
-			Msg := "A datastore error occured, the project may not have been deleted."
-			c.Errorf("Delete_project_step3 (6): %v", err)
-			Return_msg := "Return to dashboard"
-			Message_page(w, r, user, Msg, Return_msg, "/dashboard")
-			return
+			c.Errorf("Delete_project_step3 [7]: %v", err)
 		}
 	}
 
 	type TV struct {
-		User      string
-		Logged_in bool
-		Success   bool
+		User     string
+		LoggedIn bool
+		Success  bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.Success = err == nil
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 
 	tmpl, err := template.ParseFiles("header.html",
 		"delete_project_step3.html")
 	if err != nil {
-		c.Errorf("Delete_project_step3 (7): %v", err)
+		c.Errorf("Delete_project_step3 [8]: %v", err)
 		ServeError(&c, w, err)
 		return
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "delete_project_step3.html",
 		template_values); err != nil {
-		c.Errorf("Delete_project_step3 (8): %v", err)
+		c.Errorf("Delete_project_step3 [9]: %v", err)
 	}
 }

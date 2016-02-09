@@ -10,8 +10,8 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .PR.Name }}<br>
-      <b>Treatment groups:</b> {{ .PV.Group_names }} ({{.Numgroups}} groups)<br>
-      <b>Sampling rates:</b> {{ .PV.Sampling_rates }}
+      <b>Treatment groups:</b> {{ .PV.GroupNames }} ({{.NumGroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .PV.SamplingRates }}
       <br>
       <br>
       <form action="/assign_treatment_confirm" method="post">

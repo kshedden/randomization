@@ -10,8 +10,8 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .Project.Name }}<br>
-      <b>Treatment groups:</b> {{ .Project_view.Group_names }} ({{.Numgroups}} groups)<br>
-      <b>Sampling rates:</b> {{ .Project_view.Sampling_rates }}
+      <b>Treatment groups:</b> {{ .Project_view.GroupNames }} ({{.NumGroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .Project_view.SamplingRates }}
       <br>
       <br>
       {{ if .Any_vars }}
@@ -54,7 +54,7 @@
 	<input type="hidden" name="pkey" value="{{.Pkey}}">
 	<input type="hidden" name="fields" value="{{.Fields}}">
 	<input type="hidden" name="values" value="{{.Values}}">
-	<input type="hidden" name="subject_id" value="{{.Subject_id}}">
+	<input type="hidden" name="subject_id" value="{{.SubjectId}}">
       </form>
       <br>
       <a href="/project_dashboard?pkey={{.Pkey}}">Cancel and return to project</a><br>

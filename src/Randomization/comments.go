@@ -41,7 +41,7 @@ func View_comments(w http.ResponseWriter,
 
 	type TV struct {
 		User         string
-		Logged_in    bool
+		LoggedIn     bool
 		PR           *Project
 		PV           *Project_view
 		Pkey         string
@@ -50,7 +50,7 @@ func View_comments(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.PR = PR
 	template_values.PV = PV
 	template_values.Any_comments = len(PR.Comments) > 0
@@ -93,16 +93,16 @@ func Add_comment(w http.ResponseWriter,
 	PV := Format_project(PR)
 
 	type TV struct {
-		User      string
-		Logged_in bool
-		PR        *Project
-		PV        *Project_view
-		Pkey      string
+		User     string
+		LoggedIn bool
+		PR       *Project
+		PV       *Project_view
+		Pkey     string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.PR = PR
 	template_values.PV = PV
 	template_values.Pkey = Pkey

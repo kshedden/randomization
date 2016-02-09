@@ -9,11 +9,11 @@
     <div id="content">
       {{template "header" .}}
       <br>
-      <b>Project name:</b> {{ .Project_name }}<br><br>
+      <b>Project name:</b> {{ .ProjectName }}<br><br>
       <form action="/remove_subject_completed" method="post">
-	Are you sure that you want to remove subject '{{.Subject_id}}' from the study?
+	Are you sure that you want to remove subject '{{.SubjectId}}' from the study?
 	<br><br>
-	<input type="hidden" name="subject_id" value="{{.Subject_id}}">
+	<input type="hidden" name="subject_id" value="{{.SubjectId}}">
 	<input type="hidden" name="pkey" value="{{.Pkey}}">
 	<input type="submit" value="Confirm">
       </form>

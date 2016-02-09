@@ -10,14 +10,9 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
-- kind: Encoded_Project
+- kind: EncodedProject
   properties:
   - name: Owner
   - name: Created
     direction: desc
 
-- kind: Project
-  properties:
-  - name: Owner
-  - name: Created
-    direction: desc

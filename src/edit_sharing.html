@@ -9,7 +9,7 @@
     <div id="content">
       {{template "header" .}}
       <br>
-      <b>Project name:</b> {{ .Project_name }}<br><br>
+      <b>Project name:</b> {{ .ProjectName }}<br><br>
       <form action="/edit_sharing_confirm" method="post">
 	{{ if .Any_shared_users }}
 	The project will no longer be shared with anyone who is selected below.<br><br>

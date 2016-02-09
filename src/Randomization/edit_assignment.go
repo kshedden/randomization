@@ -1,15 +1,12 @@
 package randomization
 
 import (
-	"fmt"
-	"time"
-	//	"strconv"
-	"appengine/user"
-	"net/http"
-	//	"appengine/datastore"
 	"appengine"
+	"appengine/user"
+	"fmt"
 	"html/template"
-	//"strings"
+	"net/http"
+	"time"
 )
 
 // Edit_assignment
@@ -22,47 +19,56 @@ func Edit_assignment(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
-		return
-	}
-
-	PR, _ := Get_project_from_key(Pkey, &c)
-
-	if PR.Owner != user.String() {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		Msg := "Only the project owner can edit treatment group assignments that have already been made."
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if PR.Store_RawData == false {
+	proj, _ := Get_project_from_key(pkey, &c)
+	if proj.Owner != user.String() {
+		Msg := "Only the project owner can edit treatment group assignments that have already been made."
+		Return_msg := "Return to project dashboard"
+		Message_page(w, r, user, Msg, Return_msg,
+			"/project_dashboard?pkey="+pkey)
+		return
+	}
+
+	if proj.NumAssignments == 0 {
+		Msg := "There are no assignments to edit."
+		Return_msg := "Return to project dashboard"
+		Message_page(w, r, user, Msg, Return_msg,
+			"/project_dashboard?pkey="+pkey)
+		return
+	}
+
+	if proj.StoreRawData == false {
 		Msg := "Group assignments cannot be edited for a project in which the subject level data is not stored"
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	type TV struct {
-		User         string
-		Logged_in    bool
-		Pkey         string
-		Project_name string
-		Group_names  []string
+		User        string
+		LoggedIn    bool
+		Pkey        string
+		ProjectName string
+		GroupNames  []string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
-	template_values.Pkey = Pkey
-	template_values.Project_name = PR.Name
-	template_values.Group_names = PR.Group_names
+	template_values.LoggedIn = user != nil
+	template_values.Pkey = pkey
+	template_values.ProjectName = proj.Name
+	template_values.GroupNames = proj.GroupNames
 
 	tmpl, err := template.ParseFiles("header.html",
 		"edit_assignment.html")
@@ -90,54 +96,54 @@ func Edit_assignment_confirm(w http.ResponseWriter,
 
 	user := user.Current(c)
 
-	Pkey := r.FormValue("pkey")
+	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, _ := Get_project_from_key(pkey, &c)
 
-	if PR.Owner != user.String() {
+	if proj.Owner != user.String() {
 		Msg := "Only the project owner can edit treatment group assignments that have already been made."
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if PR.Store_RawData == false {
+	if proj.StoreRawData == false {
 		Msg := "Assignments cannot be edited in a project in which the subject level data is not stored"
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	subject_id := r.FormValue("subject_id")
 
 	type TV struct {
-		User               string
-		Logged_in          bool
-		Pkey               string
-		Project_name       string
-		Current_group_name string
-		New_group_name     string
-		Subject_id         string
+		User             string
+		LoggedIn         bool
+		Pkey             string
+		ProjectName      string
+		CurrentGroupName string
+		NewGroupName     string
+		SubjectId        string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
-	template_values.Pkey = Pkey
-	template_values.Project_name = PR.Name
-	template_values.New_group_name = r.FormValue("new_group_name")
-	template_values.Subject_id = subject_id
+	template_values.LoggedIn = user != nil
+	template_values.Pkey = pkey
+	template_values.ProjectName = proj.Name
+	template_values.NewGroupName = r.FormValue("new_group_name")
+	template_values.SubjectId = subject_id
 
 	found := false
-	for _, rec := range PR.RawData {
-		if rec.Subject_id == subject_id {
-			template_values.Current_group_name = rec.Current_group
+	for _, rec := range proj.RawData {
+		if rec.SubjectId == subject_id {
+			template_values.CurrentGroupName = rec.CurrentGroup
 			found = true
 		}
 	}
@@ -145,15 +151,15 @@ func Edit_assignment_confirm(w http.ResponseWriter,
 		Msg := fmt.Sprintf("There is no subject with id '%s' in this project, the assignment was not changed.", subject_id)
 		Return_msg := "Return to project"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if template_values.Current_group_name == template_values.New_group_name {
-		Msg := fmt.Sprintf("You have requested to change the treatment group of subject '%s' to '%s', but the subject is already in this treatment group.", subject_id, template_values.New_group_name)
+	if template_values.CurrentGroupName == template_values.NewGroupName {
+		Msg := fmt.Sprintf("You have requested to change the treatment group of subject '%s' to '%s', but the subject is already in this treatment group.", subject_id, template_values.NewGroupName)
 		Return_msg := "Return to project"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -183,27 +189,27 @@ func Edit_assignment_completed(w http.ResponseWriter,
 
 	user := user.Current(c)
 
-	Pkey := r.FormValue("pkey")
+	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, _ := Get_project_from_key(pkey, &c)
 
-	if PR.Owner != user.String() {
+	if proj.Owner != user.String() {
 		Msg := "Only the project owner can edit treatment group assignments that have already been made."
 		Return_msg := "Return to project dashboard"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if PR.Store_RawData == false {
+	if proj.StoreRawData == false {
 		Msg := "Group assignments cannot be edited in a project in which the subject level data is not stored."
 		Return_msg := "Return to project"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -211,12 +217,12 @@ func Edit_assignment_completed(w http.ResponseWriter,
 	subject_id := r.FormValue("subject_id")
 
 	found := false
-	for _, rec := range PR.RawData {
-		if rec.Subject_id == subject_id {
-			Remove_from_aggregate(rec, PR)
-			old_group_name := rec.Current_group
-			rec.Current_group = new_group_name
-			Add_to_aggregate(rec, PR)
+	for _, rec := range proj.RawData {
+		if rec.SubjectId == subject_id {
+			Remove_from_aggregate(rec, proj)
+			old_group_name := rec.CurrentGroup
+			rec.CurrentGroup = new_group_name
+			Add_to_aggregate(rec, proj)
 
 			comment := new(Comment)
 			comment.Person = user.String()
@@ -224,7 +230,7 @@ func Edit_assignment_completed(w http.ResponseWriter,
 			comment.Comment = []string{
 				fmt.Sprintf("Group assignment for subject '%s' changed from '%s' to '%s'",
 					subject_id, old_group_name, new_group_name)}
-			PR.Comments = append(PR.Comments, comment)
+			proj.Comments = append(proj.Comments, comment)
 
 			found = true
 		}
@@ -233,14 +239,14 @@ func Edit_assignment_completed(w http.ResponseWriter,
 		Msg := fmt.Sprintf("There is no subject with id '%s' in this project, the assignment was not changed.", subject_id)
 		Return_msg := "Return to project"
 		Message_page(w, r, user, Msg, Return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	Store_project(PR, Pkey, &c)
+	Store_project(proj, pkey, &c)
 
 	Msg := "The assignment has been changed."
 	Return_msg := "Return to project"
 	Message_page(w, r, user, Msg, Return_msg,
-		"/project_dashboard?pkey="+Pkey)
+		"/project_dashboard?pkey="+pkey)
 }

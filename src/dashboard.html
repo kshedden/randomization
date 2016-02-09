@@ -28,13 +28,13 @@
               {{ range .PR }}
               <tr>
                 <td><a href="project_dashboard?pkey={{.Owner}}::{{.Name}}">{{ .Name }}</a></td>
-		<td>{{ .Created_date }} at {{ .Created_time }}</td>
-		{{ if .Modified_ever }}
-		<td>{{ .Modified_date }} at {{ .Modified_time }}</td>
+		<td>{{ .CreatedDate }} at {{ .CreatedTime }}</td>
+		{{ if .ModifiedEver }}
+		<td>{{ .ModifiedDate }} at {{ .ModifiedTime }}</td>
 		{{ else }}
 		<td></td>
 		{{ end }}
-		<td>{{ .Num_assignments }}</td>
+		<td>{{ .NumAssignments }}</td>
               </tr>
               {{ end }}
 	    </tbody>

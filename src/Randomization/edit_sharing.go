@@ -1,14 +1,11 @@
 package randomization
 
 import (
-	"fmt"
-	//	"time"
-	//	"strconv"
-	"appengine/user"
-	"net/http"
-	//	"appengine/datastore"
 	"appengine"
+	"appengine/user"
+	"fmt"
 	"html/template"
+	"net/http"
 	"strings"
 )
 
@@ -22,46 +19,44 @@ func Edit_sharing(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
+	shr := strings.Split(pkey, "::")
+	owner := shr[0]
+	project_name := shr[1]
 
-	Pkey := r.FormValue("pkey")
-
-	A := strings.Split(Pkey, "::")
-	owner := A[0]
-	project_name := A[1]
-
-	if owner != user.String() {
+	if strings.ToLower(owner) != strings.ToLower(user.String()) {
 		Msg := "Only the owner of a project can manage sharing."
 		Return_msg := "Return to dashboard"
 		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
 		return
 	}
 
-	Shared_users, err := Get_shared_users(Pkey, &c)
+	Shared_users, err := Get_shared_users(pkey, &c)
 	if err != nil {
 		Msg := "Datastore error: unable to retrieve sharing information."
 		Return_msg := "Return to dashboard"
 		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
+		c.Errorf("Can't retrieve sharing: %v %v", project_name, owner)
 		return
 	}
 
 	type TV struct {
 		User             string
-		Logged_in        bool
+		LoggedIn         bool
 		Shared_users     []string
 		Any_shared_users bool
-		Project_name     string
+		ProjectName      string
 		Pkey             string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Shared_users = Shared_users
 	template_values.Any_shared_users = len(Shared_users) > 0
-	template_values.Project_name = project_name
-	template_values.Pkey = Pkey
+	template_values.ProjectName = project_name
+	template_values.Pkey = pkey
 
 	tmpl, err := template.ParseFiles("header.html",
 		"edit_sharing.html")
@@ -158,8 +153,8 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 
 	type TV struct {
 		User             string
-		Logged_in        bool
-		Project_name     string
+		LoggedIn         bool
+		ProjectName      string
 		Shared_users     []string
 		Any_shared_users bool
 		Pkey             string
@@ -167,10 +162,10 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Shared_users = Shared_users
 	template_values.Any_shared_users = len(Shared_users) > 0
-	template_values.Project_name = project_name
+	template_values.ProjectName = project_name
 	template_values.Pkey = Pkey
 
 	tmpl, err := template.ParseFiles("header.html",

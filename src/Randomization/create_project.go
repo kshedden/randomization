@@ -26,13 +26,13 @@ func Create_project_step1(w http.ResponseWriter,
 	user := user.Current(c)
 
 	type TV struct {
-		User      string
-		Logged_in bool
+		User     string
+		LoggedIn bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step1.html")
@@ -67,10 +67,10 @@ func Create_project_step2(w http.ResponseWriter,
 	project_name := r.FormValue("project_name")
 
 	// Check if the project name has already been used.
-	Pkey := user.String() + "::" + project_name
-	Key := datastore.NewKey(c, "Encoded_Project", Pkey, 0, nil)
-	var pr Encoded_Project
-	err := datastore.Get(c, Key, &pr)
+	pkey := user.String() + "::" + project_name
+	key := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
+	var pr EncodedProject
+	err := datastore.Get(c, key, &pr)
 	if err == nil {
 		Msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", project_name, user.String())
 		Return_msg := "Return to dashboard"
@@ -79,15 +79,15 @@ func Create_project_step2(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User      string
-		Logged_in bool
-		Name      string
-		Pkey      string
+		User     string
+		LoggedIn bool
+		Name     string
+		Pkey     string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
 
 	tmpl, err := template.ParseFiles("header.html",
@@ -122,19 +122,18 @@ func Create_project_step3(w http.ResponseWriter,
 	user := user.Current(c)
 
 	type TV struct {
-		User          string
-		Logged_in     bool
-		Name          string
-		Pkey          string
-		Store_RawData bool
+		User         string
+		LoggedIn     bool
+		Name         string
+		Pkey         string
+		StoreRawData bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	c.Errorf(r.FormValue("store_rawdata")) //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "yes"
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "yes"
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step3.html")
@@ -170,13 +169,13 @@ func Create_project_step4(w http.ResponseWriter,
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	type TV struct {
-		User          string
-		Logged_in     bool
-		Name          string
-		Pkey          string
-		Store_RawData bool
-		Numgroups     int
-		IX            []int
+		User         string
+		LoggedIn     bool
+		Name         string
+		Pkey         string
+		StoreRawData bool
+		NumGroups    int
+		IX           []int
 	}
 
 	// Group numbers (they don't have names yet)
@@ -187,11 +186,11 @@ func Create_project_step4(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "true"
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.IX = IX
-	template_values.Numgroups = numgroups
+	template_values.NumGroups = numgroups
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step4.html")
@@ -225,15 +224,15 @@ func Create_project_step5(w http.ResponseWriter,
 	user := user.Current(c)
 
 	type TV struct {
-		User            string
-		Logged_in       bool
-		Name            string
-		Pkey            string
-		Group_names     string
-		Group_names_arr []string
-		Store_RawData   bool
-		Numgroups       int
-		IX              []int
+		User           string
+		LoggedIn       bool
+		Name           string
+		Pkey           string
+		GroupNames     string
+		GroupNames_arr []string
+		StoreRawData   bool
+		NumGroups      int
+		IX             []int
 	}
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
@@ -245,19 +244,19 @@ func Create_project_step5(w http.ResponseWriter,
 	}
 
 	// Get the group names from the previous page
-	Group_names := make([]string, numgroups, numgroups)
+	GroupNames := make([]string, numgroups, numgroups)
 	for i := 0; i < numgroups; i++ {
-		Group_names[i] = r.FormValue(fmt.Sprintf("name%d", i+1))
+		GroupNames[i] = r.FormValue(fmt.Sprintf("name%d", i+1))
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	template_values.Group_names = strings.Join(Group_names, ",")
-	template_values.Group_names_arr = Group_names
-	template_values.Numgroups = len(Group_names)
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "true"
+	template_values.GroupNames = strings.Join(GroupNames, ",")
+	template_values.GroupNames_arr = GroupNames
+	template_values.NumGroups = len(GroupNames)
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.IX = IX
 
 	tmpl, err := template.ParseFiles("header.html",
@@ -292,25 +291,25 @@ func Create_project_step6(w http.ResponseWriter,
 	user := user.Current(c)
 
 	type TV struct {
-		User           string
-		Logged_in      bool
-		Name           string
-		Pkey           string
-		Group_names    string
-		Store_RawData  bool
-		Sampling_rates string
-		Numgroups      int
+		User          string
+		LoggedIn      bool
+		Name          string
+		Pkey          string
+		GroupNames    string
+		StoreRawData  bool
+		SamplingRates string
+		NumGroups     int
 	}
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	// Get the sampling rates from the previous page
-	Group_names_arr := Clean_split(r.FormValue("group_names"), ",")
-	Sampling_rates := make([]string, numgroups, numgroups)
+	group_names_arr := Clean_split(r.FormValue("group_names"), ",")
+	sampling_rates := make([]string, numgroups, numgroups)
 	for i := 0; i < numgroups; i++ {
-		Sampling_rates[i] = r.FormValue(fmt.Sprintf("rate%s", Group_names_arr[i]))
+		sampling_rates[i] = r.FormValue(fmt.Sprintf("rate%s", group_names_arr[i]))
 
-		x, err := strconv.ParseFloat(Sampling_rates[i], 64)
+		x, err := strconv.ParseFloat(sampling_rates[i], 64)
 		if (err != nil) || (x <= 0) {
 			Msg := "The sampling rates must be positive numbers."
 			Return_msg := "Return to dashboard"
@@ -321,12 +320,12 @@ func Create_project_step6(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	template_values.Group_names = r.FormValue("group_names")
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "true"
-	template_values.Sampling_rates = strings.Join(Sampling_rates, ",")
-	template_values.Numgroups = numgroups
+	template_values.GroupNames = r.FormValue("group_names")
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
+	template_values.SamplingRates = strings.Join(sampling_rates, ",")
+	template_values.NumGroups = numgroups
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step6.html")
@@ -363,17 +362,17 @@ func Create_project_step7(w http.ResponseWriter,
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
 
 	type TV struct {
-		User           string
-		Logged_in      bool
-		Name           string
-		Pkey           string
-		IX             []int
-		Group_names    string
-		Store_RawData  bool
-		Numgroups      int
-		Numvar         int
-		Any_vars       bool
-		Sampling_rates string
+		User          string
+		LoggedIn      bool
+		Name          string
+		Pkey          string
+		IX            []int
+		GroupNames    string
+		StoreRawData  bool
+		NumGroups     int
+		NumVar        int
+		Any_vars      bool
+		SamplingRates string
 	}
 
 	IX := make([]int, numvar, numvar)
@@ -384,15 +383,15 @@ func Create_project_step7(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	template_values.Group_names = r.FormValue("group_names")
+	template_values.GroupNames = r.FormValue("group_names")
 	template_values.IX = IX
-	template_values.Numgroups = numgroups
-	template_values.Numvar = numvar
+	template_values.NumGroups = numgroups
+	template_values.NumVar = numvar
 	template_values.Any_vars = (numvar > 0)
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "true"
-	template_values.Sampling_rates = r.FormValue("rates")
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
+	template_values.SamplingRates = r.FormValue("rates")
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step7.html")
@@ -465,17 +464,17 @@ func Create_project_step8(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User           string
-		Logged_in      bool
-		Name           string
-		Pkey           string
-		IX             []int
-		Group_names    string
-		Store_RawData  bool
-		Numgroups      int
-		Numvar         int
-		Variables      string
-		Sampling_rates string
+		User          string
+		LoggedIn      bool
+		Name          string
+		Pkey          string
+		IX            []int
+		GroupNames    string
+		StoreRawData  bool
+		NumGroups     int
+		Numvar        int
+		Variables     string
+		SamplingRates string
 	}
 
 	IX := make([]int, numvar, numvar)
@@ -486,15 +485,15 @@ func Create_project_step8(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	template_values.Group_names = r.FormValue("group_names")
+	template_values.GroupNames = r.FormValue("group_names")
 	template_values.IX = IX
-	template_values.Numgroups = numgroups
+	template_values.NumGroups = numgroups
 	template_values.Numvar = numvar
 	template_values.Variables = variables
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "true"
-	template_values.Sampling_rates = r.FormValue("rates")
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
+	template_values.SamplingRates = r.FormValue("rates")
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step8.html")
@@ -529,7 +528,7 @@ func Create_project_step9(w http.ResponseWriter,
 	user := user.Current(c)
 
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
-	Group_names := r.FormValue("group_names")
+	GroupNames := r.FormValue("group_names")
 	project_name := r.FormValue("project_name")
 	variables := r.FormValue("variables")
 	VL := Clean_split(variables, ":")
@@ -554,9 +553,9 @@ func Create_project_step9(w http.ResponseWriter,
 	project.Name = project_name
 	project.Variables = VA
 	project.Bias = bias
-	project.Group_names = Clean_split(Group_names, ",")
-	project.Assignments = make([]int, len(project.Group_names))
-	project.Store_RawData = r.FormValue("store_rawdata") == "true"
+	project.GroupNames = Clean_split(GroupNames, ",")
+	project.Assignments = make([]int, len(project.GroupNames))
+	project.StoreRawData = r.FormValue("store_rawdata") == "true"
 	project.Open = true
 
 	// Convert the rates to numbers
@@ -566,10 +565,10 @@ func Create_project_step9(w http.ResponseWriter,
 	for i, x := range rates_arr {
 		rates_num[i], _ = strconv.ParseFloat(x, 64)
 	}
-	project.Sampling_rates = rates_num
+	project.SamplingRates = rates_num
 
 	// Set up the data.
-	numgroups := len(project.Group_names)
+	numgroups := len(project.GroupNames)
 	data0 := make([][][]float64, len(project.Variables))
 	for j, va := range project.Variables {
 		data0[j] = make([][]float64, len(va.Levels))
@@ -577,32 +576,42 @@ func Create_project_step9(w http.ResponseWriter,
 			data0[j][k] = make([]float64, numgroups)
 		}
 	}
-	var err error
 	project.Data = data0
-	if err != nil {
-		c.Errorf("JSON: %v]n", err)
-	}
 
-	Pkey := user.String() + "::" + project_name
-	Key := datastore.NewKey(c, "Encoded_Project", Pkey, 0, nil)
-	EP, err := Encode_Project(&project)
-	_, err = datastore.Put(c, Key, EP)
+	pkey := user.String() + "::" + project_name
+	dkey := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
+	eproj, err := Encode_Project(&project)
+	if err != nil {
+		c.Errorf("Create_project_step9 [2]: %v", err)
+	}
+	_, err = datastore.Put(c, dkey, eproj)
 	if err != nil {
 		Msg := "A datastore error occured, the project was not created."
 		c.Errorf("Create_project_step9: %v", err)
 		Return_msg := "Return to dashboard"
 		Message_page(w, r, user, Msg, Return_msg, "/dashboard")
 		return
+	} else {
+		c.Errorf("WORKED~!!")
+		c.Errorf("%+v", eproj)
+		c.Errorf("%v", dkey)
+	}
+
+	// Remove any stale SharingByProject values
+	dkey = datastore.NewKey(c, "SharingByProject", pkey, 0, nil)
+	err = datastore.Delete(c, dkey)
+	if err != nil {
+		c.Errorf("Create_project_step9 [3]: %v", err)
 	}
 
 	type TV struct {
-		User      string
-		Logged_in bool
+		User     string
+		LoggedIn bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 
 	tmpl, err := template.ParseFiles("header.html",
 		"create_project_step9.html")
@@ -635,26 +644,26 @@ func validation_error_step8(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User           string
-		Logged_in      bool
-		Name           string
-		Numgroups      int
-		Pkey           string
-		Group_names    string
-		Store_RawData  bool
-		Numvar         int
-		Sampling_rates string
+		User          string
+		LoggedIn      bool
+		Name          string
+		NumGroups     int
+		Pkey          string
+		GroupNames    string
+		StoreRawData  bool
+		Numvar        int
+		SamplingRates string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
-	template_values.Group_names = r.FormValue("group_names")
-	template_values.Numgroups, _ = strconv.Atoi(r.FormValue("numgroups"))
+	template_values.GroupNames = r.FormValue("group_names")
+	template_values.NumGroups, _ = strconv.Atoi(r.FormValue("numgroups"))
 	template_values.Numvar, _ = strconv.Atoi(r.FormValue("numvar"))
-	template_values.Store_RawData = r.FormValue("store_rawdata") == "true"
-	template_values.Sampling_rates = r.FormValue("rates")
+	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
+	template_values.SamplingRates = r.FormValue("rates")
 
 	tmpl, err := template.ParseFiles("header.html",
 		"validation_error_step8.html")

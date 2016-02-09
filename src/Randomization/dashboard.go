@@ -1,13 +1,10 @@
 package randomization
 
 import (
-	"appengine/user"
-	//"fmt"
-	"net/http"
-	//	"appengine/datastore"
 	"appengine"
-	//	"strings"
+	"appengine/user"
 	"html/template"
+	"net/http"
 )
 
 func Dashboard(w http.ResponseWriter,
@@ -19,10 +16,9 @@ func Dashboard(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
 
-	_, PR, err := Get_projects(user.String(), true, &c)
+	_, projlist, err := GetProjects(user.String(), true, &c)
 	if err != nil {
 		Msg := "A datastore error occured, projects cannot be retrieved."
 		c.Errorf("Dashboard: %v", err)
@@ -32,17 +28,17 @@ func Dashboard(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User      string
-		Logged_in bool
-		PRN       bool
-		PR        []*Encoded_Project_view
+		User     string
+		LoggedIn bool
+		PRN      bool
+		PR       []*EncodedProjectView
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.PR = Format_encoded_projects(PR)
-	template_values.PRN = len(PR) > 0
-	template_values.Logged_in = user != nil
+	template_values.PR = Format_encoded_projects(projlist)
+	template_values.PRN = len(projlist) > 0
+	template_values.LoggedIn = user != nil
 
 	tmpl, err := template.ParseFiles("header.html", "dashboard.html")
 	if err != nil {

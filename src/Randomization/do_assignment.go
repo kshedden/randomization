@@ -6,13 +6,11 @@ import (
 	"math/rand"
 	"sort"
 	"time"
-	//	"strconv"
-	//	"strings"
 )
 
 // Do_assignment
 func Do_assignment(M *map[string]string, project *Project, subject_id string,
-	user_id string) (string, string) {
+	user_id string) (string, string, error) {
 
 	// Set the seed to a random time.  Not sure if this is needed,
 	// but since each assignment runs as a new instance we might
@@ -21,9 +19,9 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	source := rand.NewSource(time.Now().UnixNano())
 	rgen := rand.New(source)
 
-	numgroups := len(project.Group_names)
+	numgroups := len(project.GroupNames)
 	numvar := len(project.Variables)
-	rates := project.Sampling_rates
+	rates := project.SamplingRates
 
 	data := project.Data
 
@@ -50,7 +48,7 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	sort.Float64s(sorted_scores)
 
 	// Construct the Pocock/Simon probabilities.
-	N := len(project.Group_names)
+	N := len(project.GroupNames)
 	qmin := 1 / float64(N)
 	qmax := 2 / float64(N-1)
 	qq := qmin + float64(project.Bias-1)*(qmax-qmin)/9.0
@@ -112,19 +110,18 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 			}
 		}
 		if kk == -1 {
-			// Should never reach here
-			fmt.Printf("\n\n???????????\n\n")
+			return "", "", fmt.Errorf("Invalid state in Do_assignment")
 		}
 		data[j][kk][ii] += 1
 	}
 
 	// Update the stored data
-	if project.Store_RawData {
+	if project.StoreRawData {
 		rec := new(DataRecord)
-		rec.Subject_id = subject_id
-		rec.Assigned_time = time.Now()
-		rec.Assigned_group = project.Group_names[ii]
-		rec.Current_group = project.Group_names[ii]
+		rec.SubjectId = subject_id
+		rec.AssignedTime = time.Now()
+		rec.AssignedGroup = project.GroupNames[ii]
+		rec.CurrentGroup = project.GroupNames[ii]
 		rec.Included = true
 		data := make([]string, len(project.Variables))
 		for j, v := range project.Variables {
@@ -135,17 +132,17 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 		project.RawData = append(project.RawData, rec)
 	}
 
-	project.Num_assignments += 1
+	project.NumAssignments += 1
 
-	return project.Group_names[ii], msg
+	return project.GroupNames[ii], msg, nil
 }
 
-// Range returns the numerical range of the values in M.
-func Range(M []float64) float64 {
+// Range returns the numerical range of the values in vec.
+func Range(vec []float64) float64 {
 
-	mn := M[0]
-	mx := M[0]
-	for _, x := range M {
+	mn := vec[0]
+	mx := vec[0]
+	for _, x := range vec {
 		if x < mn {
 			mn = x
 		}
@@ -156,21 +153,21 @@ func Range(M []float64) float64 {
 	return mx - mn
 }
 
-// StDev returns the standard deviation of the values in M.
-func StDev(M []float64) float64 {
+// StDev returns the standard deviation of the values in vec.
+func StDev(vec []float64) float64 {
 
 	m := 0.0
-	for _, x := range M {
+	for _, x := range vec {
 		m += x
 	}
-	m /= float64(len(M))
+	m /= float64(len(vec))
 
 	v := 0.0
-	for _, x := range M {
+	for _, x := range vec {
 		d := x - m
 		v += d * d
 	}
-	v /= float64(len(M))
+	v /= float64(len(vec))
 
 	return math.Sqrt(v)
 }
@@ -178,7 +175,7 @@ func StDev(M []float64) float64 {
 // Score calculates the contribution to the overall score if we put a
 // subject with data value `x` into group `grp` for a given variable
 // `va`.  `counts` contains the current cell counts for each level x group
-// combination for this variable.
+// combination for this variable, `va` contains variable information.
 func Score(x string,
 	grp int,
 	counts [][]float64,

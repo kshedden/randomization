@@ -24,12 +24,12 @@
                 </tr>
 	      </thead>
 	      <tbody>
-                {{ range .PR }}
+                {{ range .Proj }}
                 <tr>
 		  <td><input type="radio" value="{{ .Key }}"
                              name="project_list"/></td>
                   <td>{{ .Name }}</td>
-		  <td>{{ .Created_date }} at {{ .Created_time }}</td>
+		  <td>{{ .CreatedDate }} at {{ .CreatedTime }}</td>
                 </tr>
                 {{ end }}
 	      </tbody>

@@ -1,16 +1,11 @@
 package randomization
 
 import (
-	"fmt"
-	//	"time"
-	//	"strconv"
-	"appengine/user"
-	"net/http"
-	//	"math"
-	//	"appengine/datastore"
 	"appengine"
-	//	"strings"
+	"appengine/user"
+	"fmt"
 	"html/template"
+	"net/http"
 )
 
 // View_statistics
@@ -36,12 +31,12 @@ func View_statistics(w http.ResponseWriter,
 	project_view := Format_project(project)
 
 	// Treatment assignment.
-	TAS := make([][]string, len(project.Group_names))
-	for k, v := range project.Group_names {
+	TAS := make([][]string, len(project.GroupNames))
+	for k, v := range project.GroupNames {
 		TAS[k] = []string{v, fmt.Sprintf("%d", project.Assignments[k])}
 	}
 
-	num_groups := len(project.Group_names)
+	num_groups := len(project.GroupNames)
 	data := project.Data
 
 	m := 0
@@ -68,7 +63,7 @@ func View_statistics(w http.ResponseWriter,
 
 	type TV struct {
 		User         string
-		Logged_in    bool
+		LoggedIn     bool
 		Project      *Project
 		Any_vars     bool
 		Project_view *Project_view
@@ -79,7 +74,7 @@ func View_statistics(w http.ResponseWriter,
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Project = project
 	template_values.Any_vars = len(project.Variables) > 0
 	template_values.Project_view = project_view

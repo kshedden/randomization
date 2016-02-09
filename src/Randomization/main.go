@@ -116,8 +116,8 @@ func Check_access(user *user.User,
 	}
 
 	// Otherwise, check if the project is shared with the user.
-	Key := datastore.NewKey(*c, "Sharing_by_user", user_name, 0, nil)
-	var SBU Sharing_by_user
+	Key := datastore.NewKey(*c, "SharingByUser", user_name, 0, nil)
+	var SBU SharingByUser
 	err := datastore.Get(*c, Key, &SBU)
 	if err == datastore.ErrNoSuchEntity {
 		check_access_failed(nil, c, w, r, user)

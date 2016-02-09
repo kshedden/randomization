@@ -10,7 +10,7 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .Name }}<br>
-      <b>Treatment groups:</b> {{ .Group_names }} ({{.Numgroups}} groups)
+      <b>Treatment groups:</b> {{ .GroupNames }} ({{.NumGroups}} groups)
       <br>
       <p>Enter a sampling rate for each treatment group.  For example,
       a treatment group with sampling rate 2 will have approximately
@@ -28,7 +28,7 @@
             </div>
             <table class="hor-minimalist-b">
 	      <tbody>
-		{{ range .Group_names_arr }}
+		{{ range .GroupNames_arr }}
 		<tr>
 		  <td>
 		    Group '{{.}}' sampling rate
@@ -45,9 +45,9 @@
 	<br>
 	<input type="submit" value="Next">
 	<input type="hidden" name="project_name" value="{{ .Name }}">
-	<input type="hidden" name="numgroups" value="{{ .Numgroups }}">
-	<input type="hidden" name="group_names" value="{{ .Group_names }}">
-	<input type="hidden" name="store_rawdata" value="{{ .Store_RawData }}">
+	<input type="hidden" name="numgroups" value="{{ .NumGroups }}">
+	<input type="hidden" name="group_names" value="{{ .GroupNames }}">
+	<input type="hidden" name="store_rawdata" value="{{ .StoreRawData }}">
       </form>
       <br>
       <a href="/dashboard">Cancel and return to dashboard</a>

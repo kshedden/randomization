@@ -9,7 +9,7 @@
     <div id="content">
       {{template "header" .}}
       <br>
-      <b>Project name:</b> {{ .Project_name }}<br>
+      <b>Project name:</b> {{ .ProjectName }}<br>
       <br>
       <br>
       <form action="/edit_assignment_confirm" method="post">
@@ -27,7 +27,7 @@
 		    Subject id
 		  </td>
 		  <td>
-		    <input type="text" size=20 value="" name="subject_id">
+		    <input type="text" size=20 value="" name="SubjectId">
 		    </td>
 		</tr>
 		<tr>
@@ -35,7 +35,7 @@
 		    New group
 		  </td>
 		  <td>
-		    <select name="new_group_name">
+		    <select name="NewGroupName">
 		      {{ range .Group_names }}
 		      <option value="{{.}}">{{.}}</option>
 		      {{ end }}

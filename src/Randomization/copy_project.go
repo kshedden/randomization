@@ -36,8 +36,8 @@ func Copy_project(w http.ResponseWriter,
 		return
 	}
 
-	key := datastore.NewKey(c, "Encoded_Project", pkey, 0, nil)
-	var eproj Encoded_Project
+	key := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
+	var eproj EncodedProject
 	err := datastore.Get(c, key, &eproj)
 	if err != nil {
 		c.Errorf("Copy_project: %v", err)
@@ -49,17 +49,17 @@ func Copy_project(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User         string
-		Logged_in    bool
-		Pkey         string
-		Project_name string
+		User        string
+		LoggedIn    bool
+		Pkey        string
+		ProjectName string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Pkey = pkey
-	template_values.Project_name = eproj.Name
+	template_values.ProjectName = eproj.Name
 
 	tmpl, err := template.ParseFiles("header.html", "copy_project.html")
 	if err != nil {
@@ -97,8 +97,8 @@ func Copy_project_completed(w http.ResponseWriter,
 		return
 	}
 
-	key := datastore.NewKey(c, "Encoded_Project", pkey, 0, nil)
-	var eproj Encoded_Project
+	key := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
+	var eproj EncodedProject
 	err := datastore.Get(c, key, &eproj)
 	if err != nil {
 		Msg := "Unknown error, the project was not copied."
@@ -127,8 +127,8 @@ func Copy_project_completed(w http.ResponseWriter,
 
 	// Check if the project name has already been used.
 	new_pkey := user.String() + "::" + new_name
-	new_key := datastore.NewKey(c, "Encoded_Project", new_pkey, 0, nil)
-	var pr Encoded_Project
+	new_key := datastore.NewKey(c, "EncodedProject", new_pkey, 0, nil)
+	var pr EncodedProject
 	err = datastore.Get(c, new_key, &pr)
 	if err == nil {
 		Msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", new_name,

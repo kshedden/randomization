@@ -1,15 +1,11 @@
 package randomization
 
 import (
-	"fmt"
-	//	"time"
-	//	"strconv"
-	"appengine/user"
-	"net/http"
-	//	"appengine/datastore"
 	"appengine"
+	"appengine/user"
+	"fmt"
 	"html/template"
-	//"strings"
+	"net/http"
 )
 
 // OpenClose_project
@@ -42,20 +38,20 @@ func OpenClose_project(w http.ResponseWriter,
 	}
 
 	type TV struct {
-		User         string
-		Logged_in    bool
-		Pkey         string
-		Project_name string
-		Group_names  []string
-		Open         bool
+		User        string
+		LoggedIn    bool
+		Pkey        string
+		ProjectName string
+		GroupNames  []string
+		Open        bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Pkey = Pkey
-	template_values.Project_name = PR.Name
-	template_values.Group_names = PR.Group_names
+	template_values.ProjectName = PR.Name
+	template_values.GroupNames = PR.GroupNames
 	template_values.Open = PR.Open
 
 	tmpl, err := template.ParseFiles("header.html",

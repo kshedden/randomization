@@ -10,8 +10,8 @@
       {{template "header" .}}
       <br>
       <b>Project name:</b> {{ .Name }}<br>
-      <b>Treatment groups:</b> {{ .Group_names }} ({{.Numgroups}} groups)<br>
-      <b>Sampling rates:</b> {{ .Sampling_rates }}
+      <b>Treatment groups:</b> {{ .GroupNames }} ({{.NumGroups}} groups)<br>
+      <b>Sampling rates:</b> {{ .SamplingRates }}
       <br>
       {{ if .Any_vars }}
       <p>Use this page to define all variables that will be balanced
@@ -81,11 +81,11 @@
 	</div>
 	<br>
 	<input type="hidden" name="project_name" value="{{ .Name }}">
-	<input type="hidden" name="group_names" value="{{ .Group_names }}">
-	<input type="hidden" name="numvar" value="{{ .Numvar }}">
-	<input type="hidden" name="numgroups" value="{{ .Numgroups }}">
-	<input type="hidden" name="store_rawdata" value="{{ .Store_RawData }}">
-	<input type="hidden" name="rates" value="{{ .Sampling_rates }}">
+	<input type="hidden" name="group_names" value="{{ .GroupNames }}">
+	<input type="hidden" name="numvar" value="{{ .NumVar }}">
+	<input type="hidden" name="numgroups" value="{{ .NumGroups }}">
+	<input type="hidden" name="store_rawdata" value="{{ .StoreRawData }}">
+	<input type="hidden" name="rates" value="{{ .SamplingRates }}">
 	<input type="submit" value="Next">
       </form>
       {{ else }}
@@ -94,11 +94,11 @@
       using simple randomization.
       <form action="/create_project_step8" method="post">
 	<input type="hidden" name="project_name" value="{{ .Name }}">
-	<input type="hidden" name="group_names" value="{{ .Group_names }}">
-	<input type="hidden" name="numvar" value="{{ .Numvar }}">
-	<input type="hidden" name="numgroups" value="{{ .Numgroups }}">
-	<input type="hidden" name="store_rawdata" value="{{ .Store_RawData }}">
-	<input type="hidden" name="rates" value="{{ .Sampling_rates }}">
+	<input type="hidden" name="group_names" value="{{ .GroupNames }}">
+	<input type="hidden" name="numvar" value="{{ .NumVar }}">
+	<input type="hidden" name="numgroups" value="{{ .NumGroups }}">
+	<input type="hidden" name="store_rawdata" value="{{ .StoreRawData }}">
+	<input type="hidden" name="rates" value="{{ .SamplingRates }}">
 	<input type="submit" value="Next">
       </form>
       {{ end }}

@@ -1,15 +1,14 @@
 package randomization
 
 import (
-	"fmt"
-	"time"
-	//	"strconv"
 	"appengine"
 	"appengine/datastore"
 	"appengine/user"
+	"fmt"
 	"html/template"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // Assign_treatment_input
@@ -57,20 +56,20 @@ func Assign_treatment_input(w http.ResponseWriter,
 
 	type TV struct {
 		User      string
-		Logged_in bool
+		LoggedIn  bool
 		PR        *Project
 		PV        *Project_view
-		Numgroups int
+		NumGroups int
 		Fields    string
 		Pkey      string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.PR = PR
 	template_values.PV = PV
-	template_values.Numgroups = len(PR.Group_names)
+	template_values.NumGroups = len(PR.GroupNames)
 	template_values.Pkey = Pkey
 
 	S := make([]string, len(PR.Variables))
@@ -108,7 +107,7 @@ func check_before_assigning(proj *Project,
 	}
 
 	// Check the subject id
-	if proj.Store_RawData {
+	if proj.StoreRawData {
 
 		if len(subject_id) == 0 {
 			Msg := fmt.Sprintf("The subject id may not be blank.")
@@ -119,7 +118,7 @@ func check_before_assigning(proj *Project,
 		}
 
 		for _, rec := range proj.RawData {
-			if subject_id == rec.Subject_id {
+			if subject_id == rec.SubjectId {
 				Msg := fmt.Sprintf("Subject '%s' has already been assigned to a treatment group.  Please use a different subject id.", subject_id)
 				Return_msg := "Return to project"
 				Message_page(w, r, user, Msg, Return_msg,
@@ -188,29 +187,29 @@ func Assign_treatment_confirm(w http.ResponseWriter,
 
 	type TV struct {
 		User         string
-		Logged_in    bool
+		LoggedIn     bool
 		Pkey         string
 		Project      *Project
 		Project_view *Project_view
-		Numgroups    int
+		NumGroups    int
 		Fields       string
 		FV           [][]string
 		Values       string
-		Subject_id   string
+		SubjectId    string
 		Any_vars     bool
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Pkey = Pkey
 	template_values.Project = project
 	template_values.Project_view = project_view
-	template_values.Numgroups = len(project.Group_names)
+	template_values.NumGroups = len(project.GroupNames)
 	template_values.Fields = strings.Join(Fields, ",")
 	template_values.FV = FV
 	template_values.Values = strings.Join(Values, ",")
-	template_values.Subject_id = subject_id
+	template_values.SubjectId = subject_id
 	template_values.Any_vars = len(project.Variables) > 0
 
 	tmpl, err := template.ParseFiles("header.html",
@@ -281,14 +280,17 @@ func Assign_treatment(w http.ResponseWriter,
 		M[x] = Values[i]
 	}
 
-	ax, msg := Do_assignment(&M, PR, subject_id, user.String())
+	ax, msg, err := Do_assignment(&M, PR, subject_id, user.String())
+	if err != nil {
+		c.Errorf("%v", err)
+	}
 	c.Infof("%v", msg)
 
 	PR.Modified = time.Now()
 
 	// Update the project in the database.
 	EP, _ := Encode_Project(PR)
-	Key := datastore.NewKey(c, "Encoded_Project", Pkey, 0, nil)
+	Key := datastore.NewKey(c, "EncodedProject", Pkey, 0, nil)
 	_, err = datastore.Put(c, Key, EP)
 	if err != nil {
 		c.Errorf("Assign_treatment: %v", err)
@@ -300,21 +302,21 @@ func Assign_treatment(w http.ResponseWriter,
 
 	type TV struct {
 		User      string
-		Logged_in bool
+		LoggedIn  bool
 		PR        *Project
 		PV        *Project_view
-		Numgroups int
+		NumGroups int
 		Ax        string
 		Pkey      string
 	}
 
 	template_values := new(TV)
 	template_values.User = user.String()
-	template_values.Logged_in = user != nil
+	template_values.LoggedIn = user != nil
 	template_values.Ax = ax
 	template_values.PR = PR
 	template_values.PV = PV
-	template_values.Numgroups = len(PR.Group_names)
+	template_values.NumGroups = len(PR.GroupNames)
 	template_values.Pkey = Pkey
 
 	tmpl, err := template.ParseFiles("header.html",
