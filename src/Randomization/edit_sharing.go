@@ -93,12 +93,12 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 	// Gmail addresses don't use @gmail.com.
 	invalid_emails := make([]string, 0)
 	for k, x := range add_users {
-		A := strings.Split(x, "@")
-		if len(A) != 2 {
+		uparts := strings.Split(x, "@")
+		if len(uparts) != 2 {
 			invalid_emails = append(invalid_emails, x)
 		} else {
-			if A[1] == "gmail.com" {
-				add_users[k] = A[0]
+			if uparts[1] == "gmail.com" {
+				add_users[k] = uparts[0]
 			}
 		}
 	}

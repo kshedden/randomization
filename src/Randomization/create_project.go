@@ -326,8 +326,7 @@ func Create_project_step6(w http.ResponseWriter,
 	template_values.SamplingRates = strings.Join(sampling_rates, ",")
 	template_values.NumGroups = numgroups
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step6.html")
+	tmpl, err := template.ParseFiles("header.html", "create_project_step6.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return
@@ -392,8 +391,7 @@ func Create_project_step7(w http.ResponseWriter,
 	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.SamplingRates = r.FormValue("rates")
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step7.html")
+	tmpl, err := template.ParseFiles("header.html", "create_project_step7.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return

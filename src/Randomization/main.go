@@ -107,8 +107,8 @@ func Check_access(user *user.User,
 
 	user_name := strings.ToLower(user.String())
 
-	A := strings.Split(pkey, "::")
-	owner := A[0]
+	keyparts := strings.Split(pkey, "::")
+	owner := keyparts[0]
 
 	// A user can always access his or her own projects.
 	if user_name == strings.ToLower(owner) {

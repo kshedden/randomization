@@ -21,27 +21,33 @@ func Remove_subject(w http.ResponseWriter,
 
 	c := appengine.NewContext(r)
 	user := user.Current(c)
-	Pkey := r.FormValue("pkey")
+	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
-	if PR.Owner != user.String() {
+	if proj.Owner != user.String() {
 		msg := "Only the project owner can remove treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
 		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if PR.StoreRawData == false {
+	if proj.StoreRawData == false {
 		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
 		return_msg := "Return to project dashboard"
 		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+Pkey)
+			"/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -57,12 +63,12 @@ func Remove_subject(w http.ResponseWriter,
 	template_values := new(TV)
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
-	template_values.Pkey = Pkey
-	template_values.ProjectName = PR.Name
+	template_values.Pkey = pkey
+	template_values.ProjectName = proj.Name
 
-	if len(PR.RemovedSubjects) > 0 {
+	if len(proj.RemovedSubjects) > 0 {
 		template_values.Any_removed_subjects = true
-		template_values.RemovedSubjects = strings.Join(PR.RemovedSubjects, ", ")
+		template_values.RemovedSubjects = strings.Join(proj.RemovedSubjects, ", ")
 	} else {
 		template_values.Any_removed_subjects = false
 	}
@@ -90,10 +96,8 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
-
-	Pkey := r.FormValue("pkey")
+	pkey := r.FormValue("pkey")
 	subject_id := r.FormValue("subject_id")
 
 	type TV struct {
@@ -104,30 +108,34 @@ func Remove_subject_confirm(w http.ResponseWriter,
 		ProjectName string
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
-	if PR.Owner != user.String() {
+	if proj.Owner != user.String() {
 		msg := "Only the project owner can remove treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+Pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	// Check if the subject has already been removed
-	for _, s := range PR.RemovedSubjects {
+	for _, s := range proj.RemovedSubjects {
 		if s == subject_id {
 			msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subject_id)
 			return_msg := "Return to project"
-			Message_page(w, r, user, msg, return_msg,
-				"/project_dashboard?pkey="+Pkey)
+			Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 			return
 		}
 	}
 
 	// Check if the subject exists
 	found := false
-	for _, rec := range PR.RawData {
+	for _, rec := range proj.RawData {
 		if rec.SubjectId == subject_id {
 			found = true
 			break
@@ -136,8 +144,7 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	if found == false {
 		msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subject_id)
 		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+Pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -145,11 +152,10 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
 	template_values.SubjectId = subject_id
-	template_values.Pkey = Pkey
-	template_values.ProjectName = PR.Name
+	template_values.Pkey = pkey
+	template_values.ProjectName = proj.Name
 
-	tmpl, err := template.ParseFiles("header.html",
-		"remove_subject_confirm.html")
+	tmpl, err := template.ParseFiles("header.html", "remove_subject_confirm.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return
@@ -171,65 +177,68 @@ func Remove_subject_completed(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
+	pkey := r.FormValue("pkey")
 
-	Pkey := r.FormValue("pkey")
-
-	if ok := Check_access(user, Pkey, &c, &w, r); !ok {
+	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+		msg := "You do not have access to this page."
+		return_msg := "Return"
+		Message_page(w, r, user, msg, return_msg, "/")
 		return
 	}
 
-	PR, _ := Get_project_from_key(Pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
-	if PR.Owner != user.String() {
+	if proj.Owner != user.String() {
 		msg := "Only the project owner can remove treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+Pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if PR.StoreRawData == false {
+	if proj.StoreRawData == false {
 		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			fmt.Sprintf("/project_dashboard?pkey=", Pkey))
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	subject_id := r.FormValue("subject_id")
 	found := false
 	var remove_rec *DataRecord
-	for _, rec := range PR.RawData {
+	for _, rec := range proj.RawData {
 		if rec.SubjectId == subject_id {
 			rec.Included = false
 			remove_rec = rec
 			found = true
 		}
 	}
-	PR.RemovedSubjects = append(PR.RemovedSubjects, subject_id)
+	proj.RemovedSubjects = append(proj.RemovedSubjects, subject_id)
 
 	comment := new(Comment)
 	comment.Person = user.String()
 	comment.DateTime = time.Now()
 	comment.Comment = []string{fmt.Sprintf("Subject '%s' removed from the project.", subject_id)}
-	PR.Comments = append(PR.Comments, comment)
+	proj.Comments = append(proj.Comments, comment)
 
 	if found == false {
 		msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subject_id)
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+Pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	Remove_from_aggregate(remove_rec, PR)
-	PR.NumAssignments -= 1
-	Store_project(PR, Pkey, &c)
+	Remove_from_aggregate(remove_rec, proj)
+	proj.NumAssignments -= 1
+	Store_project(proj, pkey, &c)
 
 	msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subject_id)
 	return_msg := "Return to project dashboard"
-	Message_page(w, r, user, msg, return_msg,
-		"/project_dashboard?pkey="+Pkey)
+	Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 }

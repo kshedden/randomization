@@ -25,33 +25,37 @@ func Edit_assignment(w http.ResponseWriter,
 	if ok := Check_access(user, pkey, &c, &w, r); !ok {
 		msg := "Only the project owner can edit treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	proj, _ := Get_project_from_key(pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		c.Errorf("Edit_assignment_confirm [1]: %v", err)
+		return
+	}
+
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can edit treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.NumAssignments == 0 {
 		msg := "There are no assignments to edit."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.StoreRawData == false {
 		msg := "Group assignments cannot be edited for a project in which the subject level data is not stored"
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -70,8 +74,7 @@ func Edit_assignment(w http.ResponseWriter,
 	template_values.ProjectName = proj.Name
 	template_values.GroupNames = proj.GroupNames
 
-	tmpl, err := template.ParseFiles("header.html",
-		"edit_assignment.html")
+	tmpl, err := template.ParseFiles("header.html", "edit_assignment.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return
@@ -97,24 +100,32 @@ func Edit_assignment_confirm(w http.ResponseWriter,
 	pkey := r.FormValue("pkey")
 
 	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+		msg := "You do not have access to this page."
+		return_msg := "Return"
+		Message_page(w, r, user, msg, return_msg, "/")
 		return
 	}
 
-	proj, _ := Get_project_from_key(pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		c.Errorf("Edit_assignment_confirm [1]: %v", err)
+		return
+	}
 
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can edit treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.StoreRawData == false {
 		msg := "Assignments cannot be edited in a project in which the subject level data is not stored"
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -148,21 +159,18 @@ func Edit_assignment_confirm(w http.ResponseWriter,
 	if !found {
 		msg := fmt.Sprintf("There is no subject with id '%s' in this project, the assignment was not changed.", subject_id)
 		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if template_values.CurrentGroupName == template_values.NewGroupName {
 		msg := fmt.Sprintf("You have requested to change the treatment group of subject '%s' to '%s', but the subject is already in this treatment group.", subject_id, template_values.NewGroupName)
 		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	tmpl, err := template.ParseFiles("header.html",
-		"edit_assignment_confirm.html")
+	tmpl, err := template.ParseFiles("header.html", "edit_assignment_confirm.html")
 	if err != nil {
 		ServeError(&c, w, err)
 		return
@@ -184,30 +192,36 @@ func Edit_assignment_completed(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
-
 	pkey := r.FormValue("pkey")
 
 	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+		msg := "You do not have access to this page."
+		return_msg := "Return"
+		Message_page(w, r, user, msg, return_msg, "/")
 		return
 	}
 
-	proj, _ := Get_project_from_key(pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		c.Errorf("Edit_assignment_completed [1]: %v", err)
+		return
+	}
 
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can edit treatment group assignments that have already been made."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.StoreRawData == false {
 		msg := "Group assignments cannot be edited in a project in which the subject level data is not stored."
 		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -236,8 +250,7 @@ func Edit_assignment_completed(w http.ResponseWriter,
 	if !found {
 		msg := fmt.Sprintf("There is no subject with id '%s' in this project, the assignment was not changed.", subject_id)
 		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -245,6 +258,5 @@ func Edit_assignment_completed(w http.ResponseWriter,
 
 	msg := "The assignment has been changed."
 	return_msg := "Return to project"
-	Message_page(w, r, user, msg, return_msg,
-		"/project_dashboard?pkey="+pkey)
+	Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 }

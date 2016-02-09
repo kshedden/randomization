@@ -17,7 +17,6 @@ func Information_page(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
-
 	user := user.Current(c)
 
 	type TV struct {
@@ -33,8 +32,7 @@ func Information_page(w http.ResponseWriter,
 	}
 	template_values.LoggedIn = user != nil
 
-	tmpl, err := template.ParseFiles("header.html",
-		"information_page.html")
+	tmpl, err := template.ParseFiles("header.html", "information_page.html")
 	if err != nil {
 		c.Errorf("Information_page: %v", err)
 		ServeError(&c, w, err)

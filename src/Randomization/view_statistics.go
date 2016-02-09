@@ -38,9 +38,9 @@ func View_statistics(w http.ResponseWriter,
 	project_view := Format_project(project)
 
 	// Treatment assignment.
-	TAS := make([][]string, len(project.GroupNames))
+	tx_asgn := make([][]string, len(project.GroupNames))
 	for k, v := range project.GroupNames {
-		TAS[k] = []string{v, fmt.Sprintf("%d", project.Assignments[k])}
+		tx_asgn[k] = []string{v, fmt.Sprintf("%d", project.Assignments[k])}
 	}
 
 	num_groups := len(project.GroupNames)
@@ -52,18 +52,18 @@ func View_statistics(w http.ResponseWriter,
 	}
 
 	// Balance statistics.
-	FVS := make([][]string, m)
+	bal_stat := make([][]string, m)
 	jj := 0
 	for j, v := range project.Variables {
 		num_levels := len(v.Levels)
 		for k := 0; k < num_levels; k++ {
-			S := make([]string, 1+num_groups)
-			S[0] = v.Name + "=" + v.Levels[k]
+			fstat := make([]string, 1+num_groups)
+			fstat[0] = v.Name + "=" + v.Levels[k]
 			for q := 0; q < num_groups; q++ {
 				u := data[j][k][q]
-				S[q+1] = fmt.Sprintf("%.0f", u)
+				fstat[q+1] = fmt.Sprintf("%.0f", u)
 			}
-			FVS[jj] = S
+			bal_stat[jj] = fstat
 			jj++
 		}
 	}
@@ -74,8 +74,8 @@ func View_statistics(w http.ResponseWriter,
 		Project     *Project
 		AnyVars     bool
 		ProjectView *ProjectView
-		TAS         [][]string
-		FVS         [][]string
+		TxAsgn      [][]string
+		BalStat     [][]string
 		Pkey        string
 	}
 
@@ -85,9 +85,9 @@ func View_statistics(w http.ResponseWriter,
 	template_values.Project = project
 	template_values.AnyVars = len(project.Variables) > 0
 	template_values.ProjectView = project_view
-	template_values.TAS = TAS
+	template_values.TxAsgn = tx_asgn
 	template_values.Pkey = pkey
-	template_values.FVS = FVS
+	template_values.BalStat = bal_stat
 
 	tmpl, err := template.ParseFiles("header.html", "view_statistics.html")
 	if err != nil {

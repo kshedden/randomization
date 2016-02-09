@@ -22,6 +22,9 @@ func OpenClose_project(w http.ResponseWriter,
 	pkey := r.FormValue("pkey")
 
 	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+		msg := "You do not have access to this page."
+		return_msg := "Return"
+		Message_page(w, r, user, msg, return_msg, "/")
 		return
 	}
 
@@ -29,8 +32,7 @@ func OpenClose_project(w http.ResponseWriter,
 	if err != nil {
 		msg := "Datastore error: unable to retrieve project."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		c.Errorf("OpenClose_project [1]: %v", err)
 		return
 	}
@@ -38,8 +40,7 @@ func OpenClose_project(w http.ResponseWriter,
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can open or close a project for enrollment."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -87,16 +88,24 @@ func OpenClose_completed(w http.ResponseWriter,
 	pkey := r.FormValue("pkey")
 
 	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+		msg := "You do not have access to this page."
+		return_msg := "Return"
+		Message_page(w, r, user, msg, return_msg, "/")
 		return
 	}
 
-	proj, _ := Get_project_from_key(pkey, &c)
+	proj, err := Get_project_from_key(pkey, &c)
+	if err != nil {
+		msg := "Datastore error: unable to retrieve project."
+		return_msg := "Return to project dashboard"
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can open or close a project for enrollment."
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -105,14 +114,12 @@ func OpenClose_completed(w http.ResponseWriter,
 	if status == "open" {
 		msg := fmt.Sprintf("The project \"%s\" is now open for enrollment.", proj.Name)
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		proj.Open = true
 	} else {
 		msg := fmt.Sprintf("The project \"%s\" is now closed for enrollment.", proj.Name)
 		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
 		proj.Open = false
 	}
 
