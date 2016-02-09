@@ -443,13 +443,12 @@ func Create_project_step8(w http.ResponseWriter,
 	}
 
 	c := appengine.NewContext(r)
+	user := user.Current(c)
 
 	if err := r.ParseForm(); err != nil {
 		ServeError(&c, w, err)
 		return
 	}
-
-	user := user.Current(c)
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
