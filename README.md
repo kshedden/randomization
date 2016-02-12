@@ -105,21 +105,26 @@ Unpack and install as appropriate for your system.
 3. Navigate to https://console.cloud.google.com to create a project.
 More detailed instructions are
 [here](https://cloud.google.com/appengine/docs/go/gettingstarted/uploading).
-Note that you will need to edit the "app.yaml" file in the local copy
-of the randomization source code -- replace "randomization" in the
-first line of "app.yaml" with the application id that you selected
-when creating your AppEngine project on-line.
+At this page you will be able to choose an application id that will
+become part of the URL of your web application.
 
-4. Deploy your application using `goapp` or `appcfg.py`.  Note that
-you must be in the `src` directory of the randomization project when
-deploying the application.
+4. Edit the "app.yaml" file in the `src` directory of your local copy
+of the randomization source code.  Replace "randomization" in the
+first line of "app.yaml" with the application id that you selected in
+step 3 when creating your AppEngine project on-line.
 
-5. If you call your application "my_randomization", then after
-deployment it will be available at the URL
-"my_randomization.appspot.com".  Note that the first time you install
-the application it will take a few minutes for AppEngine to build the
-database indices.  While this is happening, the application will not
-be usable.
+5. Deploy your application using the command `goapp deploy` or using
+`appcfg.py`.  Both of these commands must be issued from the command
+line.  You must be in the `src` directory of the randomization project
+when deploying the application.  When you first run `goapp` or
+`appcfg.py`, your web browser will launch an authentication page where
+you must agree to link the app to your Google account.
+
+6. If your application id is "my_randomization", then after deployment
+it will be available at the URL "my_randomization.appspot.com".  Note
+that the first time you install the application it will take a few
+minutes for AppEngine to build the database indices.  While this is
+happening, the application will not be usable.
 
 ### Customization
 
