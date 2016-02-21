@@ -29,18 +29,21 @@
       <p>The "function" parameter determines what function the
       minimization algorithm optimizes when assigning subjects to
       treatment groups.  The default "range" option aims to minimize
-      the ranges (largest minus smallest value) among the fractions of
+      the ranges (largest minus smallest value) among the numbers of
       subjects within each level of a variable that are assigned to
       the different treatment groups.  These ranges are summed across
       all the levels of all the variables to produce a final score to
       minimize.  For example, if there are three treatment groups, and
-      the proportions of females assigned to the three groups are 0.3,
-      0.6, 0.5, then the range is 0.6 - 0.3 = 0.3.  The "standard
-      deviation" option for the minimization algorithm aims to
-      minimize the standard deviation among these fractions, summed
-      over all levels of all variables, i.e. the standard deviation of
-      0.3, 0.5, 0.6 would be one term in this sum.  In most cases, the
-      default "range" function is the better choice.  <br>
+      the numbers of females assigned to the three groups are 3, 6,
+      and 5, then the range is 6 - 3 = 3.  The "standard deviation"
+      option for the minimization algorithm aims to minimize the
+      standard deviation among these counts, summed over all levels of
+      all variables, i.e. the standard deviation of 3, 5, 6 would be
+      one term in this sum.  In most cases, the default "range"
+      function is the better choice.  The previous discussion applies
+      when the sampling rates are all equal to 1.  In general, the
+      counts are divided by the sampling rates before applying these
+      calculations.<br>
       <form action="/create_project_step8" method="post">
 	<div class="outer">
 	  <div class="table1">

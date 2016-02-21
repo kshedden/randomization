@@ -105,8 +105,8 @@ Unpack and install as appropriate for your system.
 3. Navigate to https://console.cloud.google.com to create a project.
 More detailed instructions are
 [here](https://cloud.google.com/appengine/docs/go/gettingstarted/uploading).
-At this page you will be able to choose an application id that will
-become part of the URL of your web application.
+At this page you will choose an application id that will become part
+of the URL of your web application.
 
 4. Edit the "app.yaml" file in the `src` directory of your local copy
 of the randomization source code.  Replace "randomization" in the

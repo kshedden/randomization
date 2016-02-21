@@ -10,7 +10,7 @@ import (
 
 // Do_assignment
 func Do_assignment(M *map[string]string, project *Project, subject_id string,
-	user_id string) (string, string, error) {
+	user_id string) (string, error) {
 
 	// Set the seed to a random time.  Not sure if this is needed,
 	// but since each assignment runs as a new instance we might
@@ -24,8 +24,6 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	rates := project.SamplingRates
 
 	data := project.Data
-
-	msg := ""
 
 	// Calculate the scores if assigning the new subject
 	// to each possible group.
@@ -86,15 +84,6 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 	// Assign to this group.
 	ii := ties[rgen.Intn(len(ties))]
 
-	msg += fmt.Sprintf("potential_scores=%v\n", potential_scores)
-	msg += fmt.Sprintf("sorted_scores=%v\n", sorted_scores)
-	msg += fmt.Sprintf("prob=%v\n", prob)
-	msg += fmt.Sprintf("cumprob=%v\n", cumprob)
-	msg += fmt.Sprintf("ur=%f\n", ur)
-	msg += fmt.Sprintf("jr=%d\n", jr)
-	msg += fmt.Sprintf("ties=%v\n", ties)
-	msg += fmt.Sprintf("ii=%v\n", ii)
-
 	// Update the project.
 	project.Assignments[ii] += 1
 	for j := 0; j < numvar; j++ {
@@ -110,7 +99,7 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 			}
 		}
 		if kk == -1 {
-			return "", "", fmt.Errorf("Invalid state in Do_assignment")
+			return "", fmt.Errorf("Invalid state in Do_assignment")
 		}
 		data[j][kk][ii] += 1
 	}
@@ -134,7 +123,7 @@ func Do_assignment(M *map[string]string, project *Project, subject_id string,
 
 	project.NumAssignments += 1
 
-	return project.GroupNames[ii], msg, nil
+	return project.GroupNames[ii], nil
 }
 
 // Range returns the numerical range of the values in vec.
@@ -214,7 +203,7 @@ func Score(x string,
 		} else if va.Func == "StDev" {
 			score_change += StDev(new_counts)
 		} else {
-			fmt.Printf("Error: Unknown scoring function\n")
+			panic("Error: Unknown scoring function\n")
 		}
 	}
 

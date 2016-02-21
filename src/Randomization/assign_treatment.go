@@ -277,11 +277,10 @@ func Assign_treatment(w http.ResponseWriter,
 		mpv[x] = values[i]
 	}
 
-	ax, msg, err := Do_assignment(&mpv, proj, subject_id, user.String())
+	ax, err := Do_assignment(&mpv, proj, subject_id, user.String())
 	if err != nil {
 		c.Errorf("%v", err)
 	}
-	c.Infof("%v", msg)
 
 	proj.Modified = time.Now()
 
