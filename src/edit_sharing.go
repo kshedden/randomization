@@ -1,24 +1,24 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/user"
-	"html/template"
 	"net/http"
 	"strings"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
-// Edit_sharing
-func Edit_sharing(w http.ResponseWriter,
-	r *http.Request) {
+// editSharing
+func editSharing(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 	shr := strings.Split(pkey, "::")
 	owner := shr[0]
@@ -26,15 +26,15 @@ func Edit_sharing(w http.ResponseWriter,
 
 	if strings.ToLower(owner) != strings.ToLower(user.String()) {
 		msg := "Only the owner of a project can manage sharing."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
-	shared_users, err := Get_shared_users(pkey, &c)
+	shared_users, err := getSharedUsers(ctx, pkey)
 	if err != nil {
 		shared_users = make([]string, 0)
-		c.Infof("Failed to retrieve sharing: %v %v", project_name, owner)
+		log.Infof(ctx, "Failed to retrieve sharing: %v %v", project_name, owner)
 	}
 
 	type TV struct {
@@ -54,30 +54,21 @@ func Edit_sharing(w http.ResponseWriter,
 	template_values.ProjectName = project_name
 	template_values.Pkey = pkey
 
-	tmpl, err := template.ParseFiles("header.html",
-		"edit_sharing.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "edit_sharing.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "edit_sharing.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Edit_sharing_confirm
-func Edit_sharing_confirm(w http.ResponseWriter,
-	r *http.Request) {
+// editSharingConfirm
+func editSharingConfirm(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
 	spkey := strings.Split(pkey, "::")
@@ -85,7 +76,7 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 
 	ap := r.FormValue("additional_people")
 	add_users := []string{}
-	add_users = Clean_split(ap, ",")
+	add_users = cleanSplit(ap, ",")
 	for k, x := range add_users {
 		add_users[k] = strings.ToLower(x)
 	}
@@ -106,28 +97,28 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 	if len(invalid_emails) > 0 {
 		msg := "The project was not shared because the following email addresses are not valid: "
 		msg += strings.Join(invalid_emails, ", ") + "."
-		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	var err error
-	err = Add_sharing(pkey, add_users, &c)
+	err = addSharing(ctx, pkey, add_users)
 	if err != nil {
 		msg := "Datastore error: unable to update sharing information."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
-		c.Errorf("Edit_sharing_confirm [1]: %v", err)
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
+		log.Errorf(ctx, "Edit_sharing_confirm [1]: %v", err)
 		return
 	}
 
 	remove_users := r.Form["remove_users"]
-	err = Remove_sharing(pkey, remove_users, &c)
+	err = removeSharing(ctx, pkey, remove_users)
 	if err != nil {
 		msg := "Datastore error: unable to update sharing information."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
-		c.Errorf("Edit_sharing_confirm [2]: %v", err)
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
+		log.Errorf(ctx, "Edit_sharing_confirm [2]: %v", err)
 		return
 	}
 
@@ -144,15 +135,7 @@ func Edit_sharing_confirm(w http.ResponseWriter,
 	template_values.ProjectName = project_name
 	template_values.Pkey = pkey
 
-	tmpl, err := template.ParseFiles("header.html",
-		"edit_sharing_confirm.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "edit_sharing_confirm.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "edit_sharing_confirm.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }

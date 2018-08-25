@@ -1,38 +1,37 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/user"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/user"
 )
 
-// View_statistics
-func View_complete_data(w http.ResponseWriter,
-	r *http.Request) {
+// viewCompleteData
+func viewCompleteData(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
-	proj, _ := Get_project_from_key(pkey, &c)
+	proj, _ := getProjectFromKey(ctx, pkey)
 	if !proj.StoreRawData {
 		msg := "Complete data are not stored for this project."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			fmt.Sprintf("/project_dashboard?pkey=%s", pkey))
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, fmt.Sprintf("/project_dashboard?pkey=%s", pkey))
 		return
 	}
 

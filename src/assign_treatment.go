@@ -1,57 +1,56 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/datastore"
-	"appengine/user"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
 	"time"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
-// Assign_treatment_input
-func Assign_treatment_input(w http.ResponseWriter,
-	r *http.Request) {
+// assignTreatmentInput
+func assignTreatmentInput(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
-	PR, err := Get_project_from_key(pkey, &c)
+	PR, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
-		c.Errorf("Assign_treatment_input: %v", err)
+		log.Errorf(ctx, "Assign_treatment_input: %v", err)
 		msg := "A datastore error occured, the project could not be loaded."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
 	if PR.Open == false {
 		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
-		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	PV := Format_project(PR)
+	PV := formatProject(PR)
 
 	type TV struct {
 		User      string
@@ -77,20 +76,13 @@ func Assign_treatment_input(w http.ResponseWriter,
 	}
 	template_values.Fields = strings.Join(S, ",")
 
-	tmpl, err := template.ParseFiles("header.html",
-		"assign_treatment_input.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "assign_treatment_input.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-func check_before_assigning(proj *Project,
+func checkBeforeAssigning(proj *Project,
 	pkey string,
 	subject_id string,
 	user *user.User,
@@ -99,9 +91,8 @@ func check_before_assigning(proj *Project,
 
 	if proj.Open == false {
 		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
-		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return false
 	}
 
@@ -110,18 +101,16 @@ func check_before_assigning(proj *Project,
 
 		if len(subject_id) == 0 {
 			msg := fmt.Sprintf("The subject id may not be blank.")
-			return_msg := "Return to project"
-			Message_page(w, r, user, msg, return_msg,
-				"/project_dashboard?pkey="+pkey)
+			rmsg := "Return to project"
+			messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 			return false
 		}
 
 		for _, rec := range proj.RawData {
 			if subject_id == rec.SubjectId {
 				msg := fmt.Sprintf("Subject '%s' has already been assigned to a treatment group.  Please use a different subject id.", subject_id)
-				return_msg := "Return to project"
-				Message_page(w, r, user, msg, return_msg,
-					"/project_dashboard?pkey="+pkey)
+				rmsg := "Return to project"
+				messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 				return false
 			}
 		}
@@ -130,48 +119,46 @@ func check_before_assigning(proj *Project,
 	return true
 }
 
-// Assign_treatment_confirm
-func Assign_treatment_confirm(w http.ResponseWriter,
-	r *http.Request) {
+// assignTreatmentConfirm
+func assignTreatmentConfirm(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
 	subject_id := r.FormValue("subject_id")
 	subject_id = strings.TrimSpace(subject_id)
 
-	project, err := Get_project_from_key(pkey, &c)
+	project, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
-		c.Errorf("Assign_treatment_confirm: %v", err)
+		log.Errorf(ctx, "Assign_treatment_confirm: %v", err)
 		msg := "A datastore error occured, the project could not be loaded."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
-	ok := check_before_assigning(project, pkey, subject_id, user, w, r)
+	ok := checkBeforeAssigning(project, pkey, subject_id, user, w, r)
 	if !ok {
 		return
 	}
 
-	project_view := Format_project(project)
+	project_view := formatProject(project)
 
 	Fields := strings.Split(r.FormValue("fields"), ",")
 	FV := make([][]string, len(Fields)+1)
@@ -211,47 +198,38 @@ func Assign_treatment_confirm(w http.ResponseWriter,
 	template_values.SubjectId = subject_id
 	template_values.AnyVars = len(project.Variables) > 0
 
-	tmpl, err := template.ParseFiles("header.html",
-		"assign_treatment_confirm.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "assign_treatment_confirm.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "assign_treatment_confirm.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Assign_treatment
-func Assign_treatment(w http.ResponseWriter,
-	r *http.Request) {
+// assignTreatment
+func assignTreatment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	proj, err := Get_project_from_key(pkey, &c)
+	proj, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
-		c.Errorf("Assign_treatment %v", err)
+		log.Errorf(ctx, "Assign_treatment %v", err)
 		msg := "A datastore error occured, the project could not be loaded."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
@@ -260,12 +238,12 @@ func Assign_treatment(w http.ResponseWriter,
 	// Check this a second time in case someone lands on this page
 	// without going through the previous checks
 	// (e.g. inappropriate use of back button on browser).
-	ok := check_before_assigning(proj, pkey, subject_id, user, w, r)
+	ok := checkBeforeAssigning(proj, pkey, subject_id, user, w, r)
 	if !ok {
 		return
 	}
 
-	pview := Format_project(proj)
+	pview := formatProject(proj)
 
 	fields := strings.Split(r.FormValue("fields"), ",")
 	values := strings.Split(r.FormValue("values"), ",")
@@ -277,22 +255,22 @@ func Assign_treatment(w http.ResponseWriter,
 		mpv[x] = values[i]
 	}
 
-	ax, err := Do_assignment(&mpv, proj, subject_id, user.String())
+	ax, err := doAssignment(&mpv, proj, subject_id, user.String())
 	if err != nil {
-		c.Errorf("%v", err)
+		log.Errorf(ctx, "%v", err)
 	}
 
 	proj.Modified = time.Now()
 
 	// Update the project in the database.
-	eproj, _ := Encode_Project(proj)
-	key := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
-	_, err = datastore.Put(c, key, eproj)
+	eproj, _ := encodeProject(proj)
+	key := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
+	_, err = datastore.Put(ctx, key, eproj)
 	if err != nil {
-		c.Errorf("Assign_treatment: %v", err)
+		log.Errorf(ctx, "Assign_treatment: %v", err)
 		msg := "A datastore error occured, the project could not be updated."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
@@ -315,15 +293,8 @@ func Assign_treatment(w http.ResponseWriter,
 	template_values.NumGroups = len(proj.GroupNames)
 	template_values.Pkey = pkey
 
-	tmpl, err := template.ParseFiles("header.html",
-		"assign_treatment.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "assign_treatment.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }

@@ -1,28 +1,28 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/datastore"
-	"appengine/user"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
-// Create_project_step1 gets the project name from the user.
-func Create_project_step1(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep1 gets the project name from the user.
+func CreateProjectStep1(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 
 	type TV struct {
 		User     string
@@ -33,47 +33,39 @@ func Create_project_step1(w http.ResponseWriter,
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step1.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step1.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step2 asks if the subject-level data are to be logged.
-func Create_project_step2(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep2 asks if the subject-level data are to be logged.
+func CreateProjectStep2(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 	project_name := r.FormValue("project_name")
 
 	// Check if the project name has already been used.
 	pkey := user.String() + "::" + project_name
-	key := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
+	key := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
 	var pr EncodedProject
-	err := datastore.Get(c, key, &pr)
+	err := datastore.Get(ctx, key, &pr)
 	if err == nil {
 		msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", project_name, user.String())
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
@@ -89,36 +81,27 @@ func Create_project_step2(w http.ResponseWriter,
 	template_values.LoggedIn = user != nil
 	template_values.Name = r.FormValue("project_name")
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step2.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step2.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step2.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step3 gets the number of treatment groups.
-func Create_project_step3(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep3 gets the number of treatment groups.
+func CreateProjectStep3(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	type TV struct {
 		User         string
@@ -134,36 +117,28 @@ func Create_project_step3(w http.ResponseWriter,
 	template_values.Name = r.FormValue("project_name")
 	template_values.StoreRawData = r.FormValue("store_rawdata") == "yes"
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step3.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step3.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step4
-func Create_project_step4(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep4
+func CreateProjectStep4(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
@@ -191,36 +166,27 @@ func Create_project_step4(w http.ResponseWriter,
 	template_values.IX = IX
 	template_values.NumGroups = numgroups
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step4.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step4.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step4.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step5
-func Create_project_step5(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep5
+func CreateProjectStep5(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	type TV struct {
 		User           string
@@ -258,36 +224,28 @@ func Create_project_step5(w http.ResponseWriter,
 	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.IX = IX
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step5.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step5.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step6
-func Create_project_step6(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep6
+func CreateProjectStep6(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	type TV struct {
 		User          string
@@ -303,7 +261,7 @@ func Create_project_step6(w http.ResponseWriter,
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	// Get the sampling rates from the previous page
-	group_names_arr := Clean_split(r.FormValue("group_names"), ",")
+	group_names_arr := cleanSplit(r.FormValue("group_names"), ",")
 	sampling_rates := make([]string, numgroups, numgroups)
 	for i := 0; i < numgroups; i++ {
 		sampling_rates[i] = r.FormValue(fmt.Sprintf("rate%s", group_names_arr[i]))
@@ -311,8 +269,8 @@ func Create_project_step6(w http.ResponseWriter,
 		x, err := strconv.ParseFloat(sampling_rates[i], 64)
 		if (err != nil) || (x <= 0) {
 			msg := "The sampling rates must be positive numbers."
-			return_msg := "Return to dashboard"
-			Message_page(w, r, user, msg, return_msg, "/dashboard")
+			rmsg := "Return to dashboard"
+			messagePage(w, r, user, msg, rmsg, "/dashboard")
 			return
 		}
 	}
@@ -326,35 +284,28 @@ func Create_project_step6(w http.ResponseWriter,
 	template_values.SamplingRates = strings.Join(sampling_rates, ",")
 	template_values.NumGroups = numgroups
 
-	tmpl, err := template.ParseFiles("header.html", "create_project_step6.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step6.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step7
-func Create_project_step7(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep7
+func CreateProjectStep7(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
@@ -391,15 +342,9 @@ func Create_project_step7(w http.ResponseWriter,
 	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.SamplingRates = r.FormValue("rates")
 
-	tmpl, err := template.ParseFiles("header.html", "create_project_step7.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step7.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
@@ -416,7 +361,7 @@ func process_variable_info(r *http.Request, numvar int) (string, bool) {
 
 		vname = fmt.Sprintf("levels%d", i+1)
 		vec[1] = r.FormValue(vname)
-		levels := Clean_split(vec[1], ",")
+		levels := cleanSplit(vec[1], ",")
 		if len(levels) < 2 {
 			return "", false
 		}
@@ -433,20 +378,19 @@ func process_variable_info(r *http.Request, numvar int) (string, bool) {
 	return strings.Join(variables, ":"), true
 }
 
-// Create_project_step8
-func Create_project_step8(w http.ResponseWriter,
-	r *http.Request) {
+// CreateProjectStep8
+func CreateProjectStep8(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
@@ -491,53 +435,45 @@ func Create_project_step8(w http.ResponseWriter,
 	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.SamplingRates = r.FormValue("rates")
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step8.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step8.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Create_project_step9 creates the project using all supplied
+// CreateProjectStep9 creates the project using all supplied
 // information, and stores the project in the database.
-func Create_project_step9(w http.ResponseWriter,
-	r *http.Request) {
+func CreateProjectStep9(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
 	GroupNames := r.FormValue("group_names")
 	project_name := r.FormValue("project_name")
 	variables := r.FormValue("variables")
-	VL := Clean_split(variables, ":")
+	VL := cleanSplit(variables, ":")
 	bias, _ := strconv.Atoi(r.FormValue("bias"))
 	rates := r.FormValue("rates")
 
 	// Parse and validate the variable information.
 	VA := make([]Variable, numvar, numvar)
 	for i, vl := range VL {
-		vx := Clean_split(vl, ";")
+		vx := cleanSplit(vl, ";")
 		var va Variable
 		va.Name = vx[0]
-		va.Levels = Clean_split(vx[1], ",")
+		va.Levels = cleanSplit(vx[1], ",")
 		va.Weight, _ = strconv.ParseFloat(vx[2], 64)
 		va.Func = vx[3]
 		VA[i] = va
@@ -549,14 +485,14 @@ func Create_project_step9(w http.ResponseWriter,
 	project.Name = project_name
 	project.Variables = VA
 	project.Bias = bias
-	project.GroupNames = Clean_split(GroupNames, ",")
+	project.GroupNames = cleanSplit(GroupNames, ",")
 	project.Assignments = make([]int, len(project.GroupNames))
 	project.StoreRawData = r.FormValue("store_rawdata") == "true"
 	project.Open = true
 
 	// Convert the rates to numbers
 	rates = r.FormValue("rates")
-	rates_arr := Clean_split(rates, ",")
+	rates_arr := cleanSplit(rates, ",")
 	rates_num := make([]float64, len(rates_arr))
 	for i, x := range rates_arr {
 		rates_num[i], _ = strconv.ParseFloat(x, 64)
@@ -575,25 +511,25 @@ func Create_project_step9(w http.ResponseWriter,
 	project.Data = data0
 
 	pkey := user.String() + "::" + project_name
-	dkey := datastore.NewKey(c, "EncodedProject", pkey, 0, nil)
-	eproj, err := Encode_Project(&project)
+	dkey := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
+	eproj, err := encodeProject(&project)
 	if err != nil {
-		c.Errorf("Create_project_step9 [2]: %v", err)
+		log.Errorf(ctx, "Create_project_step9 [2]: %v", err)
 	}
-	_, err = datastore.Put(c, dkey, eproj)
+	_, err = datastore.Put(ctx, dkey, eproj)
 	if err != nil {
 		msg := "A datastore error occured, the project was not created."
-		c.Errorf("Create_project_step9: %v", err)
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
+		log.Errorf(ctx, "Create_project_step9: %v", err)
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
 	// Remove any stale SharingByProject entities
-	dkey = datastore.NewKey(c, "SharingByProject", pkey, 0, nil)
-	err = datastore.Delete(c, dkey)
+	dkey = datastore.NewKey(ctx, "SharingByProject", pkey, 0, nil)
+	err = datastore.Delete(ctx, dkey)
 	if err != nil {
-		c.Errorf("Create_project_step9 [3]: %v", err)
+		log.Errorf(ctx, "Create_project_step9 [3]: %v", err)
 	}
 
 	type TV struct {
@@ -605,16 +541,9 @@ func Create_project_step9(w http.ResponseWriter,
 	template_values.User = user.String()
 	template_values.LoggedIn = user != nil
 
-	tmpl, err := template.ParseFiles("header.html",
-		"create_project_step9.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "create_project_step9.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
@@ -626,12 +555,12 @@ func validation_error_step8(w http.ResponseWriter,
 		return
 	}
 
-	c := appengine.NewContext(r)
+	ctx := appengine.NewContext(r)
 
-	user := user.Current(c)
+	user := user.Current(ctx)
 
 	if err := r.ParseForm(); err != nil {
-		ServeError(&c, w, err)
+		ServeError(ctx, w, err)
 		return
 	}
 
@@ -657,15 +586,8 @@ func validation_error_step8(w http.ResponseWriter,
 	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
 	template_values.SamplingRates = r.FormValue("rates")
 
-	tmpl, err := template.ParseFiles("header.html",
-		"validation_error_step8.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "validation_error_step8.html",
 		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }

@@ -8,8 +8,8 @@ import (
 	"time"
 )
 
-// Do_assignment
-func Do_assignment(M *map[string]string, project *Project, subject_id string,
+// doAssignment
+func doAssignment(M *map[string]string, project *Project, subject_id string,
 	user_id string) (string, error) {
 
 	// Set the seed to a random time.  Not sure if this is needed,

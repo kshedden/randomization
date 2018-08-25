@@ -1,53 +1,51 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/user"
 	"fmt"
-	"html/template"
 	"net/http"
 	"strings"
 	"time"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
-// Remove_subject
-func Remove_subject(w http.ResponseWriter,
-	r *http.Request) {
+// removeSubject
+func removeSubject(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
-	proj, err := Get_project_from_key(pkey, &c)
+	proj, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
 		msg := "Datastore error: unable to retrieve project."
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can remove treatment group assignments that have already been made."
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.StoreRawData == false {
 		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -73,30 +71,21 @@ func Remove_subject(w http.ResponseWriter,
 		template_values.Any_removed_subjects = false
 	}
 
-	tmpl, err := template.ParseFiles("header.html",
-		"remove_subject.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "remove_subject.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "remove_subject.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Remove_subject_confirm
-func Remove_subject_confirm(w http.ResponseWriter,
-	r *http.Request) {
+// removeSubjectConfirm
+func removeSubjectConfirm(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 	subject_id := r.FormValue("subject_id")
 
@@ -108,18 +97,18 @@ func Remove_subject_confirm(w http.ResponseWriter,
 		ProjectName string
 	}
 
-	proj, err := Get_project_from_key(pkey, &c)
+	proj, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
 		msg := "Datastore error: unable to retrieve project."
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can remove treatment group assignments that have already been made."
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -127,8 +116,8 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	for _, s := range proj.RemovedSubjects {
 		if s == subject_id {
 			msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subject_id)
-			return_msg := "Return to project"
-			Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+			rmsg := "Return to project"
+			messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 			return
 		}
 	}
@@ -143,8 +132,8 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	}
 	if found == false {
 		msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subject_id)
-		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -155,57 +144,49 @@ func Remove_subject_confirm(w http.ResponseWriter,
 	template_values.Pkey = pkey
 	template_values.ProjectName = proj.Name
 
-	tmpl, err := template.ParseFiles("header.html", "remove_subject_confirm.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "remove_subject_confirm.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "remove_subject_confirm.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-// Remove_subject_completed
-func Remove_subject_completed(w http.ResponseWriter,
-	r *http.Request) {
+// removeSubjectCompleted
+func removeSubjectCompleted(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		msg := "You do not have access to this page."
-		return_msg := "Return"
-		Message_page(w, r, user, msg, return_msg, "/")
+		rmsg := "Return"
+		messagePage(w, r, user, msg, rmsg, "/")
 		return
 	}
 
-	proj, err := Get_project_from_key(pkey, &c)
+	proj, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
 		msg := "Datastore error: unable to retrieve project."
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.Owner != user.String() {
 		msg := "Only the project owner can remove treatment group assignments that have already been made."
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	if proj.StoreRawData == false {
 		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -229,16 +210,16 @@ func Remove_subject_completed(w http.ResponseWriter,
 
 	if found == false {
 		msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subject_id)
-		return_msg := "Return to project dashboard"
-		Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	Remove_from_aggregate(remove_rec, proj)
+	removeFromAggregate(remove_rec, proj)
 	proj.NumAssignments -= 1
-	Store_project(proj, pkey, &c)
+	storeProject(ctx, proj, pkey)
 
 	msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subject_id)
-	return_msg := "Return to project dashboard"
-	Message_page(w, r, user, msg, return_msg, "/project_dashboard?pkey="+pkey)
+	rmsg := "Return to project dashboard"
+	messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 }

@@ -1,41 +1,41 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/user"
 	"fmt"
-	"html/template"
 	"net/http"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
-// View_statistics
-func View_statistics(w http.ResponseWriter,
-	r *http.Request) {
+// viewStatistics
+func viewStatistics(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
 	var err error
-	project, err := Get_project_from_key(pkey, &c)
+	project, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
-		c.Errorf("View_statistics [1]: %v", err)
+		log.Errorf(ctx, "View_statistics [1]: %v", err)
 		msg := "Datastore error: unable to view statistics."
-		return_msg := "Return to dashboard"
-		Message_page(w, r, user, msg, return_msg, "/dashboard")
-		c.Errorf("View_statistics [1]: %v", err)
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
+		log.Errorf(ctx, "View_statistics [1]: %v", err)
 		return
 	}
-	project_view := Format_project(project)
+	project_view := formatProject(project)
 
 	// Treatment assignment.
 	tx_asgn := make([][]string, len(project.GroupNames))
@@ -89,14 +89,7 @@ func View_statistics(w http.ResponseWriter,
 	template_values.Pkey = pkey
 	template_values.BalStat = bal_stat
 
-	tmpl, err := template.ParseFiles("header.html", "view_statistics.html")
-	if err != nil {
-		ServeError(&c, w, err)
-		return
-	}
-
-	if err := tmpl.ExecuteTemplate(w, "view_statistics.html",
-		template_values); err != nil {
-		c.Errorf("Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "view_statistics.html", template_values); err != nil {
+		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }

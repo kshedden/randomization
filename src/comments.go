@@ -1,33 +1,33 @@
 package randomization
 
 import (
-	"appengine"
-	"appengine/user"
-	"html/template"
 	"net/http"
 	"strings"
 	"time"
+
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/log"
+	"google.golang.org/appengine/user"
 )
 
-// View_comment
-func View_comments(w http.ResponseWriter,
-	r *http.Request) {
+// viewComments
+func viewComments(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
-	PR, _ := Get_project_from_key(pkey, &c)
-	PV := Format_project(PR)
+	PR, _ := getProjectFromKey(ctx, pkey)
+	PV := formatProject(PR)
 
 	for _, c := range PV.Comments {
 		c.Date = c.DateTime.Format("2006-1-2")
@@ -51,39 +51,30 @@ func View_comments(w http.ResponseWriter,
 	template_values.Any_comments = len(PR.Comments) > 0
 	template_values.Pkey = pkey
 
-	tmpl, err := template.ParseFiles("header.html",
-		"view_comments.html")
-	if err != nil {
-		c.Errorf("View_comments: %v", err)
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "view_comments.html",
 		template_values); err != nil {
-		c.Errorf("View_comments: %v", err)
+		log.Errorf(ctx, "View_comments: %v", err)
 	}
 }
 
-// Add_comment
-func Add_comment(w http.ResponseWriter,
-	r *http.Request) {
+// addComment
+func addComment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
-	proj, _ := Get_project_from_key(pkey, &c)
-	PV := Format_project(proj)
+	proj, _ := getProjectFromKey(ctx, pkey)
+	PV := formatProject(proj)
 
 	type TV struct {
 		User     string
@@ -100,44 +91,34 @@ func Add_comment(w http.ResponseWriter,
 	template_values.PV = PV
 	template_values.Pkey = pkey
 
-	tmpl, err := template.ParseFiles("header.html",
-		"add_comment.html")
-	if err != nil {
-		c.Errorf("Add_comment: %v", err)
-		ServeError(&c, w, err)
-		return
-	}
-
 	if err := tmpl.ExecuteTemplate(w, "add_comment.html",
 		template_values); err != nil {
-		c.Errorf("Add_comment: %v", err)
+		log.Errorf(ctx, "Add_comment: %v", err)
 	}
 }
 
-// Confirm_add_comment
-func Confirm_add_comment(w http.ResponseWriter,
-	r *http.Request) {
+// confirmAddComment
+func confirmAddComment(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
 		return
 	}
 
-	c := appengine.NewContext(r)
-	user := user.Current(c)
+	ctx := appengine.NewContext(r)
+	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := Check_access(user, pkey, &c, &w, r); !ok {
+	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
 		return
 	}
 
-	proj, err := Get_project_from_key(pkey, &c)
+	proj, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
 		msg := "Datastore error, unable to add comment."
-		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
-		c.Errorf("Confirm_add_comment [1]: %v", err)
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
+		log.Errorf(ctx, "Confirm_add_comment [1]: %v", err)
 		return
 	}
 
@@ -147,9 +128,8 @@ func Confirm_add_comment(w http.ResponseWriter,
 
 	if len(comment_text) == 0 {
 		msg := "No comment was entered."
-		return_msg := "Return to project"
-		Message_page(w, r, user, msg, return_msg,
-			"/project_dashboard?pkey="+pkey)
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
@@ -163,10 +143,9 @@ func Confirm_add_comment(w http.ResponseWriter,
 	comment.Comment = comment_lines
 	proj.Comments = append(proj.Comments, comment)
 
-	Store_project(proj, pkey, &c)
+	storeProject(ctx, proj, pkey)
 
 	msg := "Your comment has been added to the project."
-	return_msg := "Return to project"
-	Message_page(w, r, user, msg, return_msg,
-		"/project_dashboard?pkey="+pkey)
+	rmsg := "Return to project"
+	messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 }
