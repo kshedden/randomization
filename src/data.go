@@ -241,15 +241,15 @@ func copyEncodedProject(proj *EncodedProject) *EncodedProject {
 	newproj.SamplingRates = make([]float64, len(proj.SamplingRates))
 	copy(newproj.SamplingRates, proj.SamplingRates)
 
-	return (newproj)
+	return newproj
 }
 
 // getProjectfromKey
 func getProjectFromKey(ctx context.Context, pkey string) (*Project, error) {
 
-	Key := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
+	ky := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
 	var eproj EncodedProject
-	err := datastore.Get(ctx, Key, &eproj)
+	err := datastore.Get(ctx, ky, &eproj)
 	if err != nil {
 		log.Errorf(ctx, "Project_dashboard: %v", err)
 		return nil, err
@@ -390,40 +390,40 @@ func decodeProject(eproj *EncodedProject) *Project {
 // given Project and Key object.
 func formatProject(project *Project) *ProjectView {
 
-	B := new(ProjectView)
-	B.Owner = project.Owner
-	B.Data = project.Data
-	B.Name = project.Name
-	B.Comments = project.Comments
-	B.Assignments = project.Assignments
-	B.Bias = fmt.Sprintf("%d", project.Bias)
+	fp := new(ProjectView)
+	fp.Owner = project.Owner
+	fp.Data = project.Data
+	fp.Name = project.Name
+	fp.Comments = project.Comments
+	fp.Assignments = project.Assignments
+	fp.Bias = fmt.Sprintf("%d", project.Bias)
 	t := project.Created
 	loc, _ := time.LoadLocation("America/New_York")
 	t = t.In(loc)
-	B.CreatedDate = t.Format("2006-1-2")
-	B.CreatedTime = t.Format("3:04pm")
-	B.GroupNames = strings.Join(project.GroupNames, ",")
-	B.Variables = make([]VariableView, len(project.Variables))
+	fp.CreatedDate = t.Format("2006-1-2")
+	fp.CreatedTime = t.Format("3:04pm")
+	fp.GroupNames = strings.Join(project.GroupNames, ",")
+	fp.Variables = make([]VariableView, len(project.Variables))
 
 	rateStr := make([]string, len(project.SamplingRates))
 	for i, x := range project.SamplingRates {
 		rateStr[i] = fmt.Sprintf("%.0f", x)
 	}
-	B.SamplingRates = strings.Join(rateStr, ",")
+	fp.SamplingRates = strings.Join(rateStr, ",")
 
 	for i, pv := range project.Variables {
-		B.Variables[i] = formatVariable(pv)
+		fp.Variables[i] = formatVariable(pv)
 	}
-	B.RemovedSubjects = project.RemovedSubjects
-	B.Open = project.Open
+	fp.RemovedSubjects = project.RemovedSubjects
+	fp.Open = project.Open
 
 	t = project.Modified
 	loc, _ = time.LoadLocation("America/New_York")
 	t = t.In(loc)
-	B.ModifiedDate = t.Format("2006-1-2")
-	B.ModifiedTime = t.Format("3:04pm")
+	fp.ModifiedDate = t.Format("2006-1-2")
+	fp.ModifiedTime = t.Format("3:04pm")
 
-	return B
+	return fp
 }
 
 // formatEncodedProject returns an EncodedProjectView object
@@ -480,25 +480,23 @@ func formatEncodedProject(encProject *EncodedProject) *EncodedProjectView {
 // objects.
 func formatEncodedProjects(proj []*EncodedProject) []*EncodedProjectView {
 
-	n := len(proj)
-	B := make([]*EncodedProjectView, n, n)
-	for i := 0; i < n; i++ {
-		B[i] = formatEncodedProject(proj[i])
+	var fpr []*EncodedProjectView
+	for _, pr := range proj {
+		fpr = append(fpr, formatEncodedProject(pr))
 	}
 
-	return B
+	return fpr
 }
 
 // formatProjects
 func formatProjects(projects []*Project) []*ProjectView {
 
-	n := len(projects)
-	fmtProjects := make([]*ProjectView, n, n)
-	for i := 0; i < n; i++ {
-		fmtProjects[i] = formatProject(projects[i])
+	var fpr []*ProjectView
+	for _, pr := range projects {
+		fpr = append(fpr, formatProject(pr))
 	}
 
-	return fmtProjects
+	return fpr
 }
 
 // formatVariables returns an array of VariableView objects
@@ -533,17 +531,22 @@ func formatVariable(va Variable) VariableView {
 func getSharedUsers(ctx context.Context, projectName string) ([]string, error) {
 
 	key := datastore.NewKey(ctx, "SharingByProject", projectName, 0, nil)
+
 	var sproj SharingByProject
 	err := datastore.Get(ctx, key, &sproj)
 	if err == datastore.ErrNoSuchEntity {
 		return []string{}, nil
 	} else if err != nil {
+		log.Errorf(ctx, "getSharedUsers: %v", err)
 		return []string{}, err
 	}
+
 	if len(sproj.Users) == 0 {
 		return []string{}, nil
 	}
+
 	users := cleanSplit(sproj.Users, ",")
+
 	return users, nil
 }
 
@@ -555,16 +558,16 @@ func addSharing(ctx context.Context, projectName string, userNames []string) err
 		return nil
 	}
 
-	// Update SharingByProject.
+	// Update SharingByProject
 	key := datastore.NewKey(ctx, "SharingByProject", projectName, 0, nil)
 	sbproj := new(SharingByProject)
 	err := datastore.Get(ctx, key, sbproj)
 	if err == datastore.ErrNoSuchEntity {
-		log.Errorf(ctx, "Add_sharing [1]: %v", err)
 		// Create a new SharingByProject and carry on
 		sbproj.ProjectName = projectName
 		sbproj.Users = strings.Join(userNames, ",")
 	} else if err != nil {
+		log.Errorf(ctx, "addSharing [1]: %v", err)
 		return err
 	} else {
 		U := cleanSplit(sbproj.Users, ",")
@@ -586,19 +589,23 @@ func addSharing(ctx context.Context, projectName string, userNames []string) err
 
 	_, err = datastore.Put(ctx, key, sbproj)
 	if err != nil {
+		log.Errorf(ctx, "addSharing: %v", err)
 		return err
 	}
 
-	// Update SharingByUser.
+	// Update SharingByUser
 	for _, uname := range userNames {
+
 		key = datastore.NewKey(ctx, "SharingByUser", strings.ToLower(uname), 0, nil)
 		sbuser := new(SharingByUser)
+
 		err := datastore.Get(ctx, key, sbuser)
 		if err == datastore.ErrNoSuchEntity {
 			sbuser = new(SharingByUser)
 			sbuser.User = uname
 			sbuser.Projects = projectName
 		} else if err != nil {
+			log.Errorf(ctx, "addUser: %v", err)
 			return err
 		} else {
 			U := cleanSplit(sbuser.Projects, ",")
@@ -615,8 +622,10 @@ func addSharing(ctx context.Context, projectName string, userNames []string) err
 			}
 			sbuser.Projects = strings.Join(A, ",")
 		}
+
 		_, err = datastore.Put(ctx, key, sbuser)
 		if err != nil {
+			log.Errorf(ctx, "addUser: %v", err)
 			return err
 		}
 	}
@@ -684,7 +693,7 @@ func removeSharing(ctx context.Context, projectName string, userNames []string) 
 		}
 	}
 
-	// Update SharingByUser.
+	// Update SharingByUser
 	for _, name := range userNames {
 		pkey := datastore.NewKey(ctx, "SharingByUser", strings.ToLower(name), 0, nil)
 		suser := new(SharingByUser)

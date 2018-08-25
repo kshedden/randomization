@@ -185,9 +185,9 @@ func createProjectStep5(w http.ResponseWriter, r *http.Request) {
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	// Indices for the groups
-	IX := make([]int, numgroups, numgroups)
+	ix := make([]int, numgroups, numgroups)
 	for i := 0; i < numgroups; i++ {
-		IX[i] = i
+		ix[i] = i
 	}
 
 	// Get the group names from the previous page
@@ -214,7 +214,7 @@ func createProjectStep5(w http.ResponseWriter, r *http.Request) {
 		GroupNames_arr: GroupNames,
 		NumGroups:      len(GroupNames),
 		StoreRawData:   r.FormValue("store_rawdata") == "true",
-		IX:             IX,
+		IX:             ix,
 	}
 
 	if err := tmpl.ExecuteTemplate(w, "create_project_step5.html", tvals); err != nil {
@@ -239,15 +239,26 @@ func createProjectStep6(w http.ResponseWriter, r *http.Request) {
 
 	user := user.Current(ctx)
 
-	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
+	numgroups, err := strconv.Atoi(r.FormValue("numgroups"))
+	if err != nil {
+		msg := "Unable to parse project, the number of groups must be a number."
+		rmsg := "Return to dashboard"
+		messagePage(w, r, user, msg, rmsg, "/dashboard")
+		log.Errorf(ctx, "createProjectStep6: %v", err)
+	}
 
 	// Get the sampling rates from the previous page
 	groupNamesArr := cleanSplit(r.FormValue("group_names"), ",")
 	samplingRates := make([]string, numgroups, numgroups)
 	for i := 0; i < numgroups; i++ {
+
 		samplingRates[i] = r.FormValue(fmt.Sprintf("rate%s", groupNamesArr[i]))
 
 		x, err := strconv.ParseFloat(samplingRates[i], 64)
+		if err != nil {
+			log.Errorf(ctx, "createProjectStep6: %v", err)
+		}
+
 		if (err != nil) || (x <= 0) {
 			msg := "The sampling rates must be positive numbers."
 			rmsg := "Return to dashboard"
@@ -291,6 +302,7 @@ func createProjectStep7(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 
 	if err := r.ParseForm(); err != nil {
+		log.Errorf(ctx, "createProjectStep7: %v", err)
 		ServeError(ctx, w, err)
 		return
 	}
@@ -300,9 +312,9 @@ func createProjectStep7(w http.ResponseWriter, r *http.Request) {
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
 
-	IX := make([]int, numvar, numvar)
+	ix := make([]int, numvar, numvar)
 	for i := 0; i < numvar; i++ {
-		IX[i] = i + 1
+		ix[i] = i + 1
 	}
 
 	tvals := struct {
@@ -322,10 +334,10 @@ func createProjectStep7(w http.ResponseWriter, r *http.Request) {
 		LoggedIn:      user != nil,
 		Name:          r.FormValue("project_name"),
 		GroupNames:    r.FormValue("group_names"),
-		IX:            IX,
+		IX:            ix,
 		NumGroups:     numgroups,
 		NumVar:        numvar,
-		Any_vars:      (numvar > 0),
+		Any_vars:      numvar > 0,
 		StoreRawData:  r.FormValue("store_rawdata") == "true",
 		SamplingRates: r.FormValue("rates"),
 	}
@@ -384,18 +396,25 @@ func createProjectStep8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
-	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
-	variables, ok := processVariableInfo(r, numvar)
+	numgroups, err := strconv.Atoi(r.FormValue("numgroups"))
+	if err != nil {
+		log.Errorf(ctx, "createrProjectStep8: %v", err)
+	}
 
+	numvar, err := strconv.Atoi(r.FormValue("numvar"))
+	if err != nil {
+		log.Errorf(ctx, "createrProjectStep8: %v", err)
+	}
+
+	variables, ok := processVariableInfo(r, numvar)
 	if !ok {
 		validationErrorStep8(w, r)
 		return
 	}
 
-	IX := make([]int, numvar, numvar)
+	ix := make([]int, numvar, numvar)
 	for i := 0; i < numvar; i++ {
-		IX[i] = i + 1
+		ix[i] = i + 1
 	}
 
 	tvals := struct {
@@ -415,7 +434,7 @@ func createProjectStep8(w http.ResponseWriter, r *http.Request) {
 		LoggedIn:      user != nil,
 		Name:          r.FormValue("project_name"),
 		GroupNames:    r.FormValue("group_names"),
-		IX:            IX,
+		IX:            ix,
 		NumGroups:     numgroups,
 		Numvar:        numvar,
 		Variables:     variables,
@@ -446,13 +465,21 @@ func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 
 	user := user.Current(ctx)
 
-	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
+	numvar, err := strconv.Atoi(r.FormValue("numvar"))
+	if err != nil {
+		log.Errorf(ctx, "createProjectStep9: %v", err)
+	}
+
 	GroupNames := r.FormValue("group_names")
 	projectName := r.FormValue("project_name")
 	variables := r.FormValue("variables")
 	VL := cleanSplit(variables, ":")
-	bias, _ := strconv.Atoi(r.FormValue("bias"))
 	rates := r.FormValue("rates")
+
+	bias, err := strconv.Atoi(r.FormValue("bias"))
+	if err != nil {
+		log.Errorf(ctx, "createProjectStep9: %v", err)
+	}
 
 	// Parse and validate the variable information.
 	VA := make([]Variable, numvar, numvar)
@@ -461,7 +488,12 @@ func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 		var va Variable
 		va.Name = vx[0]
 		va.Levels = cleanSplit(vx[1], ",")
-		va.Weight, _ = strconv.ParseFloat(vx[2], 64)
+
+		va.Weight, err = strconv.ParseFloat(vx[2], 64)
+		if err != nil {
+			log.Errorf(ctx, "createProjectStep9: %v", err)
+		}
+
 		va.Func = vx[3]
 		VA[i] = va
 	}
@@ -482,7 +514,10 @@ func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 	ratesArr := cleanSplit(rates, ",")
 	ratesNum := make([]float64, len(ratesArr))
 	for i, x := range ratesArr {
-		ratesNum[i], _ = strconv.ParseFloat(x, 64)
+		ratesNum[i], err = strconv.ParseFloat(x, 64)
+		if err != nil {
+			log.Errorf(ctx, "createProjectStep9: %v", err)
+		}
 	}
 	project.SamplingRates = ratesNum
 
