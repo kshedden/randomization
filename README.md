@@ -1,6 +1,6 @@
-## Randomization tool
+## Sequential randomization tool
 
-The randomization tool is a web application that can be used to
+The sequential randomization tool is a web application that can be used to
 support research trials in which the subjects are enrolled
 sequentially into the trial.  The subjects are assigned to treatment
 arms as they are recruited, using the Pocock and Simon minimization
@@ -20,8 +20,8 @@ high.  The following treatment group assignments would be considered
 | B         |  15   | 16     |  10  |
 | C         |  13   | 12     |  27  |
 
-In the situation illustrated by this table, a simple comparison of
-post-test scores could be biased.  For example, we might expect
+In the situation illustrated by the table sown above, a simple comparison of
+post-test scores could be biased.  We might expect
 treatment C to do better than treatment A, since stronger students
 were enrolled in treatment C compared to treatment A.  This apparent
 treatment effect of method C may not have anything to do with the
@@ -47,7 +47,7 @@ similar.
 
 Some features of the randomization tool are:
 
-* Hosted using Google AppEngine, typical usage on a standard Google
+* Runs on Google Cloud Platform/Google AppEngine, typical usage on a standard Google
   user account does not incur any charges
 
 * Cloud-based data storage in the Google Cloud Datastore, data are
@@ -57,7 +57,8 @@ Some features of the randomization tool are:
 
 * Unlimited projects per user
 
-* Distinct roles for project leaders and study managers
+* Role-based access, e.g. project leaders may delete a project but study managers
+cannot to this
 
 * Supports multi-center trials
 
