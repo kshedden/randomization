@@ -21,7 +21,7 @@ func openCloseProject(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		msg := "You do not have access to this page."
 		rmsg := "Return"
 		messagePage(w, r, user, msg, rmsg, "/")
@@ -44,24 +44,23 @@ func openCloseProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		Pkey        string
 		ProjectName string
 		GroupNames  []string
 		Open        bool
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		Pkey:        pkey,
+		ProjectName: proj.Name,
+		GroupNames:  proj.GroupNames,
+		Open:        proj.Open,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Pkey = pkey
-	template_values.ProjectName = proj.Name
-	template_values.GroupNames = proj.GroupNames
-	template_values.Open = proj.Open
-
-	if err := tmpl.ExecuteTemplate(w, "openclose_project.html", template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "openclose_project.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
@@ -78,7 +77,7 @@ func openCloseCompleted(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		msg := "You do not have access to this page."
 		rmsg := "Return"
 		messagePage(w, r, user, msg, rmsg, "/")

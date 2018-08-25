@@ -22,7 +22,7 @@ func editAssignment(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		msg := "Only the project owner can edit treatment group assignments that have already been made."
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -59,23 +59,22 @@ func editAssignment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		Pkey        string
 		ProjectName string
 		GroupNames  []string
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		Pkey:        pkey,
+		ProjectName: proj.Name,
+		GroupNames:  proj.GroupNames,
 	}
 
-	templateValues := new(TV)
-	templateValues.User = user.String()
-	templateValues.LoggedIn = user != nil
-	templateValues.Pkey = pkey
-	templateValues.ProjectName = proj.Name
-	templateValues.GroupNames = proj.GroupNames
-
-	if err := tmpl.ExecuteTemplate(w, "edit_assignment.html", templateValues); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "edit_assignment.html", tvals); err != nil {
+		log.Errorf(ctx, "editAssignment failed to execute template: %v", err)
 	}
 }
 
@@ -91,7 +90,7 @@ func editAssignmentConfirm(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		msg := "You do not have access to this page."
 		rmsg := "Return"
 		messagePage(w, r, user, msg, rmsg, "/")
@@ -123,7 +122,7 @@ func editAssignmentConfirm(w http.ResponseWriter, r *http.Request) {
 
 	subjectId := r.FormValue("SubjectId")
 
-	type TV struct {
+	tvals := struct {
 		User             string
 		LoggedIn         bool
 		Pkey             string
@@ -131,20 +130,19 @@ func editAssignmentConfirm(w http.ResponseWriter, r *http.Request) {
 		CurrentGroupName string
 		NewGroupName     string
 		SubjectId        string
+	}{
+		User:         user.String(),
+		LoggedIn:     user != nil,
+		Pkey:         pkey,
+		ProjectName:  proj.Name,
+		NewGroupName: r.FormValue("NewGroupName"),
+		SubjectId:    subjectId,
 	}
-
-	templateValues := new(TV)
-	templateValues.User = user.String()
-	templateValues.LoggedIn = user != nil
-	templateValues.Pkey = pkey
-	templateValues.ProjectName = proj.Name
-	templateValues.NewGroupName = r.FormValue("NewGroupName")
-	templateValues.SubjectId = subjectId
 
 	found := false
 	for _, rec := range proj.RawData {
 		if rec.SubjectId == subjectId {
-			templateValues.CurrentGroupName = rec.CurrentGroup
+			tvals.CurrentGroupName = rec.CurrentGroup
 			found = true
 		}
 	}
@@ -155,15 +153,15 @@ func editAssignmentConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if templateValues.CurrentGroupName == templateValues.NewGroupName {
-		msg := fmt.Sprintf("You have requested to change the treatment group of subject '%s' to '%s', but the subject is already in this treatment group.", subjectId, templateValues.NewGroupName)
+	if tvals.CurrentGroupName == tvals.NewGroupName {
+		msg := fmt.Sprintf("You have requested to change the treatment group of subject '%s' to '%s', but the subject is already in this treatment group.", subjectId, tvals.NewGroupName)
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "edit_assignment_confirm.html", templateValues); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "edit_assignment_confirm.html", tvals); err != nil {
+		log.Errorf(ctx, "editAssignmentConfirm failed to execute template: %v", err)
 	}
 }
 
@@ -179,7 +177,7 @@ func editAssignmentCompleted(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		msg := "You do not have access to this page."
 		rmsg := "Return"
 		messagePage(w, r, user, msg, rmsg, "/")

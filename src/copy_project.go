@@ -22,7 +22,7 @@ func copyProject(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	ok := checkAccess(user, pkey, ctx, &w, r)
+	ok := checkAccess(ctx, user, pkey, &w, r)
 
 	if !ok {
 		msg := "Only the project owner can copy a project."
@@ -42,21 +42,20 @@ func copyProject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		Pkey        string
 		ProjectName string
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		Pkey:        pkey,
+		ProjectName: eproj.Name,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Pkey = pkey
-	template_values.ProjectName = eproj.Name
-
-	if err := tmpl.ExecuteTemplate(w, "copy_project.html", template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "copy_project.html", tvals); err != nil {
+		log.Errorf(ctx, "copyProject failed to execute template: %v", err)
 	}
 }
 
@@ -71,7 +70,7 @@ func copyProjectCompleted(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	ok := checkAccess(user, pkey, ctx, &w, r)
+	ok := checkAccess(ctx, user, pkey, &w, r)
 
 	if !ok {
 		msg := "You do not have access to the requested project."
@@ -91,35 +90,35 @@ func copyProjectCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	eproj_copy := copyEncodedProject(&eproj)
+	eprojCopy := copyEncodedProject(&eproj)
 
 	// Check if the name is valid (not blank)
-	new_name := r.FormValue("new_project_name")
-	new_name = strings.TrimSpace(new_name)
-	if len(new_name) == 0 {
+	newName := r.FormValue("new_project_name")
+	newName = strings.TrimSpace(newName)
+	if len(newName) == 0 {
 		msg := "A name for the new project must be provided."
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
-	eproj_copy.Name = new_name
+	eprojCopy.Name = newName
 
 	// The owner of the copied project is the current user
-	eproj_copy.Owner = user.String()
+	eprojCopy.Owner = user.String()
 
 	// Check if the project name has already been used.
-	new_pkey := user.String() + "::" + new_name
-	new_key := datastore.NewKey(ctx, "EncodedProject", new_pkey, 0, nil)
+	newPkey := user.String() + "::" + newName
+	newKey := datastore.NewKey(ctx, "EncodedProject", newPkey, 0, nil)
 	var pr EncodedProject
-	err = datastore.Get(ctx, new_key, &pr)
+	err = datastore.Get(ctx, newKey, &pr)
 	if err == nil {
-		msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", new_name, user.String())
+		msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", newName, user.String())
 		rmsg := "Return to dashboard"
 		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
-	_, err = datastore.Put(ctx, new_key, eproj_copy)
+	_, err = datastore.Put(ctx, newKey, eprojCopy)
 	if err != nil {
 		log.Errorf(ctx, "Copy_project: %v", err)
 		msg := "Unknown error, the project was not copied."
@@ -128,7 +127,7 @@ func copyProjectCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Infof(ctx, "Copied %s to %s", pkey, new_pkey)
+	log.Infof(ctx, "Copied %s to %s", pkey, newPkey)
 	msg := "The project has been successfully copied."
 	rmsg := "Return to dashboard"
 	messagePage(w, r, user, msg, rmsg, "/dashboard")

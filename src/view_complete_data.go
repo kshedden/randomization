@@ -23,7 +23,7 @@ func viewCompleteData(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 

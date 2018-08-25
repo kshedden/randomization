@@ -19,20 +19,18 @@ func informationPage(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	user := user.Current(ctx)
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
+	}{
+		LoggedIn: user != nil,
 	}
 
-	template_values := new(TV)
 	if user != nil {
-		template_values.User = user.String()
-	} else {
-		template_values.User = ""
+		tvals.User = user.String()
 	}
-	template_values.LoggedIn = user != nil
 
-	if err := tmpl.ExecuteTemplate(w, "information_page.html", template_values); err != nil {
-		log.Errorf(ctx, "Information page: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "information_page.html", tvals); err != nil {
+		log.Errorf(ctx, "Execute template faile in informationPage: %v", err)
 	}
 }

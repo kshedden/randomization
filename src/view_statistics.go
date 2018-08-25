@@ -21,7 +21,7 @@ func viewStatistics(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -35,15 +35,15 @@ func viewStatistics(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(ctx, "View_statistics [1]: %v", err)
 		return
 	}
-	project_view := formatProject(project)
+	projectView := formatProject(project)
 
 	// Treatment assignment.
-	tx_asgn := make([][]string, len(project.GroupNames))
+	txAsgn := make([][]string, len(project.GroupNames))
 	for k, v := range project.GroupNames {
-		tx_asgn[k] = []string{v, fmt.Sprintf("%d", project.Assignments[k])}
+		txAsgn[k] = []string{v, fmt.Sprintf("%d", project.Assignments[k])}
 	}
 
-	num_groups := len(project.GroupNames)
+	numGroups := len(project.GroupNames)
 	data := project.Data
 
 	m := 0
@@ -51,24 +51,24 @@ func viewStatistics(w http.ResponseWriter, r *http.Request) {
 		m += len(v.Levels)
 	}
 
-	// Balance statistics.
-	bal_stat := make([][]string, m)
+	// Balance statistics
+	balStat := make([][]string, m)
 	jj := 0
 	for j, v := range project.Variables {
-		num_levels := len(v.Levels)
-		for k := 0; k < num_levels; k++ {
-			fstat := make([]string, 1+num_groups)
+		numLevels := len(v.Levels)
+		for k := 0; k < numLevels; k++ {
+			fstat := make([]string, 1+numGroups)
 			fstat[0] = v.Name + "=" + v.Levels[k]
-			for q := 0; q < num_groups; q++ {
+			for q := 0; q < numGroups; q++ {
 				u := data[j][k][q]
 				fstat[q+1] = fmt.Sprintf("%.0f", u)
 			}
-			bal_stat[jj] = fstat
+			balStat[jj] = fstat
 			jj++
 		}
 	}
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		Project     *Project
@@ -77,19 +77,18 @@ func viewStatistics(w http.ResponseWriter, r *http.Request) {
 		TxAsgn      [][]string
 		BalStat     [][]string
 		Pkey        string
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		Project:     project,
+		AnyVars:     len(project.Variables) > 0,
+		ProjectView: projectView,
+		TxAsgn:      txAsgn,
+		Pkey:        pkey,
+		BalStat:     balStat,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Project = project
-	template_values.AnyVars = len(project.Variables) > 0
-	template_values.ProjectView = project_view
-	template_values.TxAsgn = tx_asgn
-	template_values.Pkey = pkey
-	template_values.BalStat = bal_stat
-
-	if err := tmpl.ExecuteTemplate(w, "view_statistics.html", template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "view_statistics.html", tvals); err != nil {
+		log.Errorf(ctx, "viewStatistics failed to execute template: %v", err)
 	}
 }

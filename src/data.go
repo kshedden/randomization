@@ -743,7 +743,7 @@ func getProjects(ctx context.Context, user string, includeShared bool) ([]*datas
 		return keylist, projlist, nil
 	}
 	if err != nil {
-		log.Errorf(ctx, "GetProjects[2]: %v", err)
+		log.Errorf(ctx, "getProjects[2]: %v", err)
 		return nil, nil, err
 	}
 
@@ -759,7 +759,7 @@ func getProjects(ctx context.Context, user string, includeShared bool) ([]*datas
 		pr := new(EncodedProject)
 		err = datastore.Get(ctx, ky, pr)
 		if err != nil {
-			log.Infof(ctx, "GetProjects [3]: %v\n%v", spv, err)
+			log.Infof(ctx, "getProjects [3]: %v\n%v", spv, err)
 			continue
 		}
 		keylist = append(keylist, ky)
@@ -768,7 +768,7 @@ func getProjects(ctx context.Context, user string, includeShared bool) ([]*datas
 	return keylist, projlist, nil
 }
 
-// Used when the GET/POST method is mismatched to the handler.
+// Serve404 is used when the GET/POST method is mismatched to the handler.
 func Serve404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
@@ -781,38 +781,35 @@ func ServeError(ctx context.Context, w http.ResponseWriter, err error) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	io.WriteString(w, "Internal Server Error")
 	log.Errorf(ctx, "ServeError [1]: %v", err)
-	fmt.Printf("\n%v\n", err)
 }
 
 // messagePage presents a simple message page and presents the user
 // with a link that leads to a followup page.
-func messagePage(w http.ResponseWriter, r *http.Request, loginUser *user.User,
-	msg string, rmsg string, returnURL string) {
+func messagePage(w http.ResponseWriter, r *http.Request, loginUser *user.User, msg string, rmsg string, returnURL string) {
 
 	ctx := appengine.NewContext(r)
 
-	type TV struct {
+	tvals := struct {
 		User      string
 		LoggedIn  bool
 		Msg       string
-		ReturnUrl string
+		ReturnURL string
 		ReturnMsg string
-		LogoutUrl string
+	}{
+		LoggedIn:  loginUser != nil,
+		Msg:       msg,
+		ReturnURL: returnURL,
+		ReturnMsg: rmsg,
 	}
 
-	templateValues := new(TV)
 	if loginUser != nil {
-		templateValues.User = loginUser.String()
+		tvals.User = loginUser.String()
 	} else {
-		templateValues.User = ""
+		tvals.User = ""
 	}
-	templateValues.LoggedIn = loginUser != nil
-	templateValues.Msg = msg
-	templateValues.ReturnUrl = returnURL
-	templateValues.ReturnMsg = rmsg
 
-	if err := tmpl.ExecuteTemplate(w, "message.html", templateValues); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "message.html", tvals); err != nil {
+		log.Errorf(ctx, "messagePage failed to execute template: %v", err)
 	}
 }
 

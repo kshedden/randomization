@@ -30,7 +30,7 @@ func assignTreatmentInput(w http.ResponseWriter, r *http.Request) {
 
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -52,7 +52,7 @@ func assignTreatmentInput(w http.ResponseWriter, r *http.Request) {
 
 	PV := formatProject(PR)
 
-	type TV struct {
+	tvals := struct {
 		User      string
 		LoggedIn  bool
 		PR        *Project
@@ -60,34 +60,27 @@ func assignTreatmentInput(w http.ResponseWriter, r *http.Request) {
 		NumGroups int
 		Fields    string
 		Pkey      string
+	}{
+		User:      user.String(),
+		LoggedIn:  user != nil,
+		PR:        PR,
+		PV:        PV,
+		NumGroups: len(PR.GroupNames),
+		Pkey:      pkey,
 	}
-
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.PR = PR
-	template_values.PV = PV
-	template_values.NumGroups = len(PR.GroupNames)
-	template_values.Pkey = pkey
 
 	S := make([]string, len(PR.Variables))
 	for i, v := range PR.Variables {
 		S[i] = v.Name
 	}
-	template_values.Fields = strings.Join(S, ",")
+	tvals.Fields = strings.Join(S, ",")
 
-	if err := tmpl.ExecuteTemplate(w, "assign_treatment_input.html",
-		template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "assign_treatment_input.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
 
-func checkBeforeAssigning(proj *Project,
-	pkey string,
-	subject_id string,
-	user *user.User,
-	w http.ResponseWriter,
-	r *http.Request) bool {
+func checkBeforeAssigning(proj *Project, pkey string, subjectId string, user *user.User, w http.ResponseWriter, r *http.Request) bool {
 
 	if proj.Open == false {
 		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
@@ -99,7 +92,7 @@ func checkBeforeAssigning(proj *Project,
 	// Check the subject id
 	if proj.StoreRawData {
 
-		if len(subject_id) == 0 {
+		if len(subjectId) == 0 {
 			msg := fmt.Sprintf("The subject id may not be blank.")
 			rmsg := "Return to project"
 			messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -107,8 +100,8 @@ func checkBeforeAssigning(proj *Project,
 		}
 
 		for _, rec := range proj.RawData {
-			if subject_id == rec.SubjectId {
-				msg := fmt.Sprintf("Subject '%s' has already been assigned to a treatment group.  Please use a different subject id.", subject_id)
+			if subjectId == rec.SubjectId {
+				msg := fmt.Sprintf("Subject '%s' has already been assigned to a treatment group.  Please use a different subject id.", subjectId)
 				rmsg := "Return to project"
 				messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 				return false
@@ -132,7 +125,7 @@ func assignTreatmentConfirm(w http.ResponseWriter, r *http.Request) {
 
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -141,8 +134,8 @@ func assignTreatmentConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subject_id := r.FormValue("subject_id")
-	subject_id = strings.TrimSpace(subject_id)
+	subjectId := r.FormValue("subject_id")
+	subjectId = strings.TrimSpace(subjectId)
 
 	project, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
@@ -153,25 +146,25 @@ func assignTreatmentConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok := checkBeforeAssigning(project, pkey, subject_id, user, w, r)
+	ok := checkBeforeAssigning(project, pkey, subjectId, user, w, r)
 	if !ok {
 		return
 	}
 
-	project_view := formatProject(project)
+	projView := formatProject(project)
 
 	Fields := strings.Split(r.FormValue("fields"), ",")
 	FV := make([][]string, len(Fields)+1)
 	Values := make([]string, len(Fields))
 
-	FV[0] = []string{"Subject id", subject_id}
+	FV[0] = []string{"Subject id", subjectId}
 	for i, v := range Fields {
 		x := r.FormValue(v)
 		FV[i+1] = []string{v, x}
 		Values[i] = x
 	}
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		Pkey        string
@@ -183,22 +176,21 @@ func assignTreatmentConfirm(w http.ResponseWriter, r *http.Request) {
 		Values      string
 		SubjectId   string
 		AnyVars     bool
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		Pkey:        pkey,
+		Project:     project,
+		ProjectView: projView,
+		NumGroups:   len(project.GroupNames),
+		Fields:      strings.Join(Fields, ","),
+		FV:          FV,
+		Values:      strings.Join(Values, ","),
+		SubjectId:   subjectId,
+		AnyVars:     len(project.Variables) > 0,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Pkey = pkey
-	template_values.Project = project
-	template_values.ProjectView = project_view
-	template_values.NumGroups = len(project.GroupNames)
-	template_values.Fields = strings.Join(Fields, ",")
-	template_values.FV = FV
-	template_values.Values = strings.Join(Values, ",")
-	template_values.SubjectId = subject_id
-	template_values.AnyVars = len(project.Variables) > 0
-
-	if err := tmpl.ExecuteTemplate(w, "assign_treatment_confirm.html", template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "assign_treatment_confirm.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
@@ -215,7 +207,7 @@ func assignTreatment(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -233,12 +225,12 @@ func assignTreatment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subject_id := r.FormValue("subject_id")
+	subjectId := r.FormValue("subject_id")
 
 	// Check this a second time in case someone lands on this page
 	// without going through the previous checks
 	// (e.g. inappropriate use of back button on browser).
-	ok := checkBeforeAssigning(proj, pkey, subject_id, user, w, r)
+	ok := checkBeforeAssigning(proj, pkey, subjectId, user, w, r)
 	if !ok {
 		return
 	}
@@ -255,7 +247,7 @@ func assignTreatment(w http.ResponseWriter, r *http.Request) {
 		mpv[x] = values[i]
 	}
 
-	ax, err := doAssignment(&mpv, proj, subject_id, user.String())
+	ax, err := doAssignment(&mpv, proj, subjectId, user.String())
 	if err != nil {
 		log.Errorf(ctx, "%v", err)
 	}
@@ -274,7 +266,7 @@ func assignTreatment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User      string
 		LoggedIn  bool
 		PR        *Project
@@ -282,19 +274,17 @@ func assignTreatment(w http.ResponseWriter, r *http.Request) {
 		NumGroups int
 		Ax        string
 		Pkey      string
+	}{
+		User:      user.String(),
+		LoggedIn:  user != nil,
+		Ax:        ax,
+		PR:        proj,
+		PV:        pview,
+		NumGroups: len(proj.GroupNames),
+		Pkey:      pkey,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Ax = ax
-	template_values.PR = proj
-	template_values.PV = pview
-	template_values.NumGroups = len(proj.GroupNames)
-	template_values.Pkey = pkey
-
-	if err := tmpl.ExecuteTemplate(w, "assign_treatment.html",
-		template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "assign_treatment.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }

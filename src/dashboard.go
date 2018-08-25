@@ -8,7 +8,7 @@ import (
 	"google.golang.org/appengine/user"
 )
 
-func Dashboard(w http.ResponseWriter, r *http.Request) {
+func dashboard(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
@@ -27,20 +27,19 @@ func Dashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
 		PRN      bool
 		PR       []*EncodedProjectView
+	}{
+		User:     user.String(),
+		PR:       formatEncodedProjects(projlist),
+		PRN:      len(projlist) > 0,
+		LoggedIn: user != nil,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.PR = formatEncodedProjects(projlist)
-	template_values.PRN = len(projlist) > 0
-	template_values.LoggedIn = user != nil
-
-	if err := tmpl.ExecuteTemplate(w, "dashboard.html", template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "dashboard.html", tvals); err != nil {
+		log.Errorf(ctx, "Dashboard failed to execute template: %v", err)
 	}
 }

@@ -21,17 +21,19 @@ func projectDashboard(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
 	splkey := strings.Split(pkey, "::")
 	owner := splkey[0]
 
-	project, _ := getProjectFromKey(ctx, pkey)
-	project_view := formatProject(project)
+	proj, _ := getProjectFromKey(ctx, pkey)
+	projView := formatProject(proj)
 
-	type TV struct {
+	susers, _ := getSharedUsers(ctx, pkey)
+
+	tvals := struct {
 		User            string
 		LoggedIn        bool
 		ProjView        *ProjectView
@@ -44,38 +46,36 @@ func projectDashboard(w http.ResponseWriter, r *http.Request) {
 		StoreRawData    string
 		Open            string
 		AnyVars         bool
+	}{
+		User:            user.String(),
+		LoggedIn:        user != nil,
+		ProjView:        projView,
+		NumGroups:       len(proj.GroupNames),
+		AnyVars:         len(proj.Variables) > 0,
+		Pkey:            pkey,
+		ShowEditSharing: owner == user.String(),
+		Owner:           owner,
 	}
 
-	susers, _ := getSharedUsers(ctx, pkey)
-
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.ProjView = project_view
-	template_values.NumGroups = len(project.GroupNames)
-	template_values.AnyVars = len(project.Variables) > 0
-	if project.StoreRawData {
-		template_values.StoreRawData = "Yes"
+	if proj.StoreRawData {
+		tvals.StoreRawData = "Yes"
 	} else {
-		template_values.StoreRawData = "No"
+		tvals.StoreRawData = "No"
 	}
+
 	if len(susers) > 0 {
-		template_values.Sharing = strings.Join(susers, ", ")
+		tvals.Sharing = strings.Join(susers, ", ")
 	} else {
-		template_values.Sharing = "Nobody"
-	}
-	template_values.Pkey = pkey
-	template_values.ShowEditSharing = owner == user.String()
-	template_values.Owner = owner
-
-	if project_view.Open {
-		template_values.Open = "Yes"
-	} else {
-		template_values.Open = "No"
+		tvals.Sharing = "Nobody"
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "project_dashboard.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if projView.Open {
+		tvals.Open = "Yes"
+	} else {
+		tvals.Open = "No"
+	}
+
+	if err := tmpl.ExecuteTemplate(w, "project_dashboard.html", tvals); err != nil {
+		log.Errorf(ctx, "projectDashbord failed to execute template: %v", err)
 	}
 }

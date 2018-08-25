@@ -9,8 +9,7 @@ import (
 )
 
 // doAssignment
-func doAssignment(M *map[string]string, project *Project, subject_id string,
-	user_id string) (string, error) {
+func doAssignment(M *map[string]string, project *Project, subjectId string, userId string) (string, error) {
 
 	// Set the seed to a random time.  Not sure if this is needed,
 	// but since each assignment runs as a new instance we might
@@ -27,23 +26,23 @@ func doAssignment(M *map[string]string, project *Project, subject_id string,
 
 	// Calculate the scores if assigning the new subject
 	// to each possible group.
-	potential_scores := make([]float64, numgroups)
+	potentialScores := make([]float64, numgroups)
 	for i := 0; i < numgroups; i++ {
 
 		// The score is a weighted linear combination over the
 		// variables.
-		potential_scores[i] = 0
+		potentialScores[i] = 0
 		for j, va := range project.Variables {
 			x := (*M)[va.Name]
 			score := Score(x, i, data[j], rates, &va)
-			potential_scores[i] += va.Weight * score
+			potentialScores[i] += va.Weight * score
 		}
 	}
 
 	// Get a sorted copy of the scores.
-	sorted_scores := make([]float64, len(potential_scores))
-	copy(sorted_scores, potential_scores)
-	sort.Float64s(sorted_scores)
+	sortedScores := make([]float64, len(potentialScores))
+	copy(sortedScores, potentialScores)
+	sort.Float64s(sortedScores)
 
 	// Construct the Pocock/Simon probabilities.
 	N := len(project.GroupNames)
@@ -51,7 +50,7 @@ func doAssignment(M *map[string]string, project *Project, subject_id string,
 	qmax := 2 / float64(N-1)
 	qq := qmin + float64(project.Bias-1)*(qmax-qmin)/9.0
 	prob := make([]float64, N)
-	for j, _ := range prob {
+	for j := range prob {
 		prob[j] = qq - 2*(float64(N)*qq-1)*float64(j+1)/float64(N*(N+1))
 	}
 
@@ -74,9 +73,9 @@ func doAssignment(M *map[string]string, project *Project, subject_id string,
 	}
 
 	// Get all values tied with the selected value.
-	ties := make([]int, 0, len(potential_scores))
-	for ii, x := range potential_scores {
-		if x == sorted_scores[jr] {
+	ties := make([]int, 0, len(potentialScores))
+	for ii, x := range potentialScores {
+		if x == sortedScores[jr] {
 			ties = append(ties, ii)
 		}
 	}
@@ -85,7 +84,7 @@ func doAssignment(M *map[string]string, project *Project, subject_id string,
 	ii := ties[rgen.Intn(len(ties))]
 
 	// Update the project.
-	project.Assignments[ii] += 1
+	project.Assignments[ii]++
 	for j := 0; j < numvar; j++ {
 
 		VA := project.Variables[j]
@@ -101,27 +100,31 @@ func doAssignment(M *map[string]string, project *Project, subject_id string,
 		if kk == -1 {
 			return "", fmt.Errorf("Invalid state in Do_assignment")
 		}
-		data[j][kk][ii] += 1
+		data[j][kk][ii]++
 	}
 
 	// Update the stored data
 	if project.StoreRawData {
-		rec := new(DataRecord)
-		rec.SubjectId = subject_id
-		rec.AssignedTime = time.Now()
-		rec.AssignedGroup = project.GroupNames[ii]
-		rec.CurrentGroup = project.GroupNames[ii]
-		rec.Included = true
+
 		data := make([]string, len(project.Variables))
 		for j, v := range project.Variables {
 			data[j] = (*M)[v.Name]
 		}
-		rec.Data = data
-		rec.Assigner = user_id
-		project.RawData = append(project.RawData, rec)
+
+		rec := DataRecord{
+			SubjectId:     subjectId,
+			AssignedTime:  time.Now(),
+			AssignedGroup: project.GroupNames[ii],
+			CurrentGroup:  project.GroupNames[ii],
+			Included:      true,
+			Data:          data,
+			Assigner:      userId,
+		}
+
+		project.RawData = append(project.RawData, &rec)
 	}
 
-	project.NumAssignments += 1
+	project.NumAssignments++
 
 	return project.GroupNames[ii], nil
 }
@@ -165,17 +168,13 @@ func StDev(vec []float64) float64 {
 // subject with data value `x` into group `grp` for a given variable
 // `va`.  `counts` contains the current cell counts for each level x group
 // combination for this variable, `va` contains variable information.
-func Score(x string,
-	grp int,
-	counts [][]float64,
-	rates []float64,
-	va *Variable) float64 {
+func Score(x string, grp int, counts [][]float64, rates []float64, va *Variable) float64 {
 
 	nlevel := len(va.Levels)
-	num_groups := len(counts[0])
+	numGroups := len(counts[0])
 
-	new_counts := make([]float64, num_groups)
-	score_change := 0.0
+	newCounts := make([]float64, numGroups)
+	scoreChange := 0.0
 	for j := 0; j < nlevel; j++ {
 
 		if x != va.Levels[j] {
@@ -184,28 +183,29 @@ func Score(x string,
 
 		// Get the count for each group if we were to assign
 		// this unit to group `grp`.
-		for i := 0; i < num_groups; i++ {
+		for i := 0; i < numGroups; i++ {
 			if i != grp {
-				new_counts[i] = counts[j][i]
+				newCounts[i] = counts[j][i]
 			} else {
-				new_counts[i] = counts[j][i] + 1
+				newCounts[i] = counts[j][i] + 1
 			}
 		}
 
 		// Adjust the counts to account for the intended
 		// marginal frequencies.
-		for i := 0; i < num_groups; i++ {
-			new_counts[i] /= rates[i]
+		for i := 0; i < numGroups; i++ {
+			newCounts[i] /= rates[i]
 		}
 
-		if va.Func == "Range" {
-			score_change += Range(new_counts)
-		} else if va.Func == "StDev" {
-			score_change += StDev(new_counts)
-		} else {
+		switch va.Func {
+		case "Range":
+			scoreChange += Range(newCounts)
+		case "StDev":
+			scoreChange += StDev(newCounts)
+		default:
 			panic("Error: Unknown scoring function\n")
 		}
 	}
 
-	return score_change
+	return scoreChange
 }

@@ -22,7 +22,7 @@ func editSharing(w http.ResponseWriter, r *http.Request) {
 	pkey := r.FormValue("pkey")
 	shr := strings.Split(pkey, "::")
 	owner := shr[0]
-	project_name := shr[1]
+	projectName := shr[1]
 
 	if strings.ToLower(owner) != strings.ToLower(user.String()) {
 		msg := "Only the owner of a project can manage sharing."
@@ -31,31 +31,30 @@ func editSharing(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shared_users, err := getSharedUsers(ctx, pkey)
+	sharedUsers, err := getSharedUsers(ctx, pkey)
 	if err != nil {
-		shared_users = make([]string, 0)
-		log.Infof(ctx, "Failed to retrieve sharing: %v %v", project_name, owner)
+		sharedUsers = make([]string, 0)
+		log.Infof(ctx, "editSharing failed to retrieve sharing: %v %v", projectName, owner)
 	}
 
-	type TV struct {
+	tvals := struct {
 		User           string
 		LoggedIn       bool
 		SharedUsers    []string
 		AnySharedUsers bool
 		ProjectName    string
 		Pkey           string
+	}{
+		User:           user.String(),
+		LoggedIn:       user != nil,
+		SharedUsers:    sharedUsers,
+		AnySharedUsers: len(sharedUsers) > 0,
+		ProjectName:    projectName,
+		Pkey:           pkey,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.SharedUsers = shared_users
-	template_values.AnySharedUsers = len(shared_users) > 0
-	template_values.ProjectName = project_name
-	template_values.Pkey = pkey
-
-	if err := tmpl.ExecuteTemplate(w, "edit_sharing.html", template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "edit_sharing.html", tvals); err != nil {
+		log.Errorf(ctx, "editSharing failed to execute template: %v", err)
 	}
 }
 
@@ -72,70 +71,69 @@ func editSharingConfirm(w http.ResponseWriter, r *http.Request) {
 	pkey := r.FormValue("pkey")
 
 	spkey := strings.Split(pkey, "::")
-	project_name := spkey[1]
+	projectName := spkey[1]
 
 	ap := r.FormValue("additional_people")
-	add_users := []string{}
-	add_users = cleanSplit(ap, ",")
-	for k, x := range add_users {
-		add_users[k] = strings.ToLower(x)
+	addUsers := []string{}
+	addUsers = cleanSplit(ap, ",")
+	for k, x := range addUsers {
+		addUsers[k] = strings.ToLower(x)
 	}
 
 	// Gmail addresses don't use @gmail.com.
-	invalid_emails := make([]string, 0)
-	for k, x := range add_users {
+	invalidEmails := make([]string, 0)
+	for k, x := range addUsers {
 		uparts := strings.Split(x, "@")
 		if len(uparts) != 2 {
-			invalid_emails = append(invalid_emails, x)
+			invalidEmails = append(invalidEmails, x)
 		} else {
 			if uparts[1] == "gmail.com" {
-				add_users[k] = uparts[0]
+				addUsers[k] = uparts[0]
 			}
 		}
 	}
 
-	if len(invalid_emails) > 0 {
+	if len(invalidEmails) > 0 {
 		msg := "The project was not shared because the following email addresses are not valid: "
-		msg += strings.Join(invalid_emails, ", ") + "."
+		msg += strings.Join(invalidEmails, ", ") + "."
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
 	var err error
-	err = addSharing(ctx, pkey, add_users)
+	err = addSharing(ctx, pkey, addUsers)
 	if err != nil {
 		msg := "Datastore error: unable to update sharing information."
 		rmsg := "Return to dashboard"
 		messagePage(w, r, user, msg, rmsg, "/dashboard")
-		log.Errorf(ctx, "Edit_sharing_confirm [1]: %v", err)
+		log.Errorf(ctx, "editSharingConfirm [1]: %v", err)
 		return
 	}
 
-	remove_users := r.Form["remove_users"]
-	err = removeSharing(ctx, pkey, remove_users)
+	removeUsers := r.Form["remove_users"]
+	err = removeSharing(ctx, pkey, removeUsers)
 	if err != nil {
 		msg := "Datastore error: unable to update sharing information."
 		rmsg := "Return to dashboard"
 		messagePage(w, r, user, msg, rmsg, "/dashboard")
-		log.Errorf(ctx, "Edit_sharing_confirm [2]: %v", err)
+		log.Errorf(ctx, "editSharingConfirm [2]: %v", err)
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		ProjectName string
 		Pkey        string
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		ProjectName: projectName,
+		Pkey:        pkey,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.ProjectName = project_name
-	template_values.Pkey = pkey
-
-	if err := tmpl.ExecuteTemplate(w, "edit_sharing_confirm.html", template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "edit_sharing_confirm.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }

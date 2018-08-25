@@ -23,7 +23,7 @@ func removeSubject(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -49,29 +49,28 @@ func removeSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User                 string
 		LoggedIn             bool
 		Pkey                 string
 		ProjectName          string
 		Any_removed_subjects bool
 		RemovedSubjects      string
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		Pkey:        pkey,
+		ProjectName: proj.Name,
 	}
-
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Pkey = pkey
-	template_values.ProjectName = proj.Name
 
 	if len(proj.RemovedSubjects) > 0 {
-		template_values.Any_removed_subjects = true
-		template_values.RemovedSubjects = strings.Join(proj.RemovedSubjects, ", ")
+		tvals.Any_removed_subjects = true
+		tvals.RemovedSubjects = strings.Join(proj.RemovedSubjects, ", ")
 	} else {
-		template_values.Any_removed_subjects = false
+		tvals.Any_removed_subjects = false
 	}
 
-	if err := tmpl.ExecuteTemplate(w, "remove_subject.html", template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "remove_subject.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
@@ -87,15 +86,7 @@ func removeSubjectConfirm(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
-	subject_id := r.FormValue("subject_id")
-
-	type TV struct {
-		User        string
-		LoggedIn    bool
-		Pkey        string
-		SubjectId   string
-		ProjectName string
-	}
+	subjectId := r.FormValue("subject_id")
 
 	proj, err := getProjectFromKey(ctx, pkey)
 	if err != nil {
@@ -114,8 +105,8 @@ func removeSubjectConfirm(w http.ResponseWriter, r *http.Request) {
 
 	// Check if the subject has already been removed
 	for _, s := range proj.RemovedSubjects {
-		if s == subject_id {
-			msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subject_id)
+		if s == subjectId {
+			msg := fmt.Sprintf("Subject '%s' has already been removed from the study.", subjectId)
 			rmsg := "Return to project"
 			messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 			return
@@ -125,26 +116,33 @@ func removeSubjectConfirm(w http.ResponseWriter, r *http.Request) {
 	// Check if the subject exists
 	found := false
 	for _, rec := range proj.RawData {
-		if rec.SubjectId == subject_id {
+		if rec.SubjectId == subjectId {
 			found = true
 			break
 		}
 	}
 	if found == false {
-		msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subject_id)
+		msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subjectId)
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.SubjectId = subject_id
-	template_values.Pkey = pkey
-	template_values.ProjectName = proj.Name
+	tvals := struct {
+		User        string
+		LoggedIn    bool
+		Pkey        string
+		SubjectId   string
+		ProjectName string
+	}{
+		User:        user.String(),
+		LoggedIn:    user != nil,
+		SubjectId:   subjectId,
+		Pkey:        pkey,
+		ProjectName: proj.Name,
+	}
 
-	if err := tmpl.ExecuteTemplate(w, "remove_subject_confirm.html", template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "remove_subject_confirm.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
@@ -161,7 +159,7 @@ func removeSubjectCompleted(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		msg := "You do not have access to this page."
 		rmsg := "Return"
 		messagePage(w, r, user, msg, rmsg, "/")
@@ -190,36 +188,36 @@ func removeSubjectCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	subject_id := r.FormValue("subject_id")
+	subjectId := r.FormValue("subject_id")
 	found := false
-	var remove_rec *DataRecord
+	var removeRec *DataRecord
 	for _, rec := range proj.RawData {
-		if rec.SubjectId == subject_id {
+		if rec.SubjectId == subjectId {
 			rec.Included = false
-			remove_rec = rec
+			removeRec = rec
 			found = true
 		}
 	}
-	proj.RemovedSubjects = append(proj.RemovedSubjects, subject_id)
+	proj.RemovedSubjects = append(proj.RemovedSubjects, subjectId)
 
 	comment := new(Comment)
 	comment.Person = user.String()
 	comment.DateTime = time.Now()
-	comment.Comment = []string{fmt.Sprintf("Subject '%s' removed from the project.", subject_id)}
+	comment.Comment = []string{fmt.Sprintf("Subject '%s' removed from the project.", subjectId)}
 	proj.Comments = append(proj.Comments, comment)
 
 	if found == false {
-		msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subject_id)
+		msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subjectId)
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 		return
 	}
 
-	removeFromAggregate(remove_rec, proj)
-	proj.NumAssignments -= 1
+	removeFromAggregate(removeRec, proj)
+	proj.NumAssignments--
 	storeProject(ctx, proj, pkey)
 
-	msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subject_id)
+	msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subjectId)
 	rmsg := "Return to project dashboard"
 	messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
 }

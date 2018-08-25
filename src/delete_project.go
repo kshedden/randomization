@@ -37,19 +37,18 @@ func deleteProjectStep1(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
 		Proj     []*EncodedProjectView
+	}{
+		User:     user.String(),
+		Proj:     formatEncodedProjects(projlist),
+		LoggedIn: user != nil,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.Proj = formatEncodedProjects(projlist)
-	template_values.LoggedIn = user != nil
-
-	if err := tmpl.ExecuteTemplate(w, "delete_project_step1.html", template_values); err != nil {
-		log.Errorf(ctx, "Delete_project_step1: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "delete_project_step1.html", tvals); err != nil {
+		log.Errorf(ctx, "deleteProjectStep1: %v", err)
 	}
 }
 
@@ -73,26 +72,25 @@ func deleteProjectStep2(w http.ResponseWriter, r *http.Request) {
 	pkey := r.FormValue("project_list")
 	svec := strings.Split(pkey, "::")
 
-	type TV struct {
+	tvals := struct {
 		User        string
 		LoggedIn    bool
 		ProjectName string
 		Pkey        string
 		Nokey       bool
+	}{
+		User:     user.String(),
+		LoggedIn: user != nil,
+		Pkey:     pkey,
+		Nokey:    len(pkey) == 0,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Pkey = pkey
 	if len(svec) >= 2 {
-		template_values.ProjectName = svec[1]
+		tvals.ProjectName = svec[1]
 	}
-	template_values.Nokey = len(pkey) == 0
 
-	if err := tmpl.ExecuteTemplate(w, "delete_project_step2.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Delete_project_step2: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "delete_project_step2.html", tvals); err != nil {
+		log.Errorf(ctx, "deleteProjectStep2: %v", err)
 	}
 }
 
@@ -109,7 +107,7 @@ func deleteProjectStep3(w http.ResponseWriter, r *http.Request) {
 	pkey := r.FormValue("Pkey")
 
 	if err := r.ParseForm(); err != nil {
-		log.Errorf(ctx, "Delete_project_step3 [1]: %v", err)
+		log.Errorf(ctx, "deleteProjectStep3 [1]: %v", err)
 		ServeError(ctx, w, err)
 		return
 	}
@@ -119,17 +117,17 @@ func deleteProjectStep3(w http.ResponseWriter, r *http.Request) {
 	// SharingByUsers records.
 	key := datastore.NewKey(ctx, "SharingByProject", pkey, 0, nil)
 	var sbproj SharingByProject
-	Shared_with := make([]string, 0)
+	sharedWith := make([]string, 0)
 	err := datastore.Get(ctx, key, &sbproj)
 	if err == datastore.ErrNoSuchEntity {
-		log.Errorf(ctx, "Delete_project_step3 [2]: %v", err)
+		log.Errorf(ctx, "deleteProjectStep3 [2]: %v", err)
 	} else if err != nil {
-		log.Errorf(ctx, "Delete_project_step3 [3] %v", err)
+		log.Errorf(ctx, "deleteProjectStep3 [3] %v", err)
 	} else {
-		Shared_with = cleanSplit(sbproj.Users, ",")
+		sharedWith = cleanSplit(sbproj.Users, ",")
 		err = datastore.Delete(ctx, key)
 		if err != nil {
-			log.Errorf(ctx, "Delete_project_step3 [4] %v", err)
+			log.Errorf(ctx, "deleteProjectStep3 [4] %v", err)
 		}
 	}
 
@@ -137,16 +135,16 @@ func deleteProjectStep3(w http.ResponseWriter, r *http.Request) {
 	key = datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
 	err = datastore.Delete(ctx, key)
 	if err != nil {
-		log.Errorf(ctx, "Delete_project_step3 [5]: %v", err)
+		log.Errorf(ctx, "deleteProjectStep3 [5]: %v", err)
 	}
 
 	// Delete from each user's SharingByUser record.
-	for _, user1 := range Shared_with {
+	for _, user1 := range sharedWith {
 		var sbuser SharingByUser
 		key := datastore.NewKey(ctx, "SharingByUser", strings.ToLower(user1), 0, nil)
 		err := datastore.Get(ctx, key, &sbuser)
 		if err != nil {
-			log.Errorf(ctx, "Delete_project_step3 [6]: %v", err)
+			log.Errorf(ctx, "deleteProjectStep3 [6]: %v", err)
 		}
 		Projects := cleanSplit(sbuser.Projects, ",")
 
@@ -157,32 +155,29 @@ func deleteProjectStep3(w http.ResponseWriter, r *http.Request) {
 				mp[x] = true
 			}
 		}
-		vec := make([]string, len(mp))
-		jj := 0
-		for k, _ := range mp {
-			vec[jj] = k
-			jj += 1
+		var vec []string
+		for k := range mp {
+			vec = append(vec, k)
 		}
 		sbuser.Projects = strings.Join(vec, ",")
 
 		_, err = datastore.Put(ctx, key, &sbuser)
 		if err != nil {
-			log.Errorf(ctx, "Delete_project_step3 [7]: %v", err)
+			log.Errorf(ctx, "deleteProjectStep3 [7]: %v", err)
 		}
 	}
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
 		Success  bool
+	}{
+		User:     user.String(),
+		LoggedIn: err == nil,
+		Success:  user != nil,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.Success = err == nil
-	template_values.LoggedIn = user != nil
-
-	if err := tmpl.ExecuteTemplate(w, "delete_project_step3.html", template_values); err != nil {
-		log.Errorf(ctx, "Delete_project_step3 [9]: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "delete_project_step3.html", tvals); err != nil {
+		log.Errorf(ctx, "deleteProjectStep3 [9]: %v", err)
 	}
 }

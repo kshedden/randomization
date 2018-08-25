@@ -19,18 +19,18 @@ var tmpl = template.Must(template.ParseGlob("html_templates/*.html"))
 func init() {
 
 	http.HandleFunc("/", informationPage)
-	http.HandleFunc("/dashboard", requireLogin(Dashboard))
+	http.HandleFunc("/dashboard", requireLogin(dashboard))
 
 	// Project creation pages
-	http.HandleFunc("/create_project_step1", requireLogin(CreateProjectStep1))
-	http.HandleFunc("/create_project_step2", requireLogin(CreateProjectStep2))
-	http.HandleFunc("/create_project_step3", requireLogin(CreateProjectStep3))
-	http.HandleFunc("/create_project_step4", requireLogin(CreateProjectStep4))
-	http.HandleFunc("/create_project_step5", requireLogin(CreateProjectStep5))
-	http.HandleFunc("/create_project_step6", requireLogin(CreateProjectStep6))
-	http.HandleFunc("/create_project_step7", requireLogin(CreateProjectStep7))
-	http.HandleFunc("/create_project_step8", requireLogin(CreateProjectStep8))
-	http.HandleFunc("/create_project_step9", requireLogin(CreateProjectStep9))
+	http.HandleFunc("/create_project_step1", requireLogin(createProjectStep1))
+	http.HandleFunc("/create_project_step2", requireLogin(createProjectStep2))
+	http.HandleFunc("/create_project_step3", requireLogin(createProjectStep3))
+	http.HandleFunc("/create_project_step4", requireLogin(createProjectStep4))
+	http.HandleFunc("/create_project_step5", requireLogin(createProjectStep5))
+	http.HandleFunc("/create_project_step6", requireLogin(createProjectStep6))
+	http.HandleFunc("/create_project_step7", requireLogin(createProjectStep7))
+	http.HandleFunc("/create_project_step8", requireLogin(createProjectStep8))
+	http.HandleFunc("/create_project_step9", requireLogin(createProjectStep9))
 
 	// Copy project pages
 	http.HandleFunc("/copy_project", requireLogin(copyProject))
@@ -73,27 +73,27 @@ func init() {
 
 // checkAccess determines whether the given user has permission to
 // access the given project.
-func checkAccess(user *user.User, pkey string, ctx context.Context, w *http.ResponseWriter, r *http.Request) bool {
+func checkAccess(ctx context.Context, user *user.User, pkey string, w *http.ResponseWriter, r *http.Request) bool {
 
-	user_name := strings.ToLower(user.String())
+	userName := strings.ToLower(user.String())
 
 	keyparts := strings.Split(pkey, "::")
 	owner := keyparts[0]
 
 	// A user can always access his or her own projects.
-	if user_name == strings.ToLower(owner) {
+	if userName == strings.ToLower(owner) {
 		return true
 	}
 
 	// Otherwise, check if the project is shared with the user.
-	key := datastore.NewKey(ctx, "SharingByUser", user_name, 0, nil)
+	key := datastore.NewKey(ctx, "SharingByUser", userName, 0, nil)
 	var sbuser SharingByUser
 	err := datastore.Get(ctx, key, &sbuser)
 	if err == datastore.ErrNoSuchEntity {
-		check_access_failed(nil, ctx, w, r, user)
+		checkAccessFailed(ctx, nil, w, r, user)
 		return false
 	} else if err != nil {
-		check_access_failed(&err, ctx, w, r, user)
+		checkAccessFailed(ctx, &err, w, r, user)
 		return false
 	}
 	L := cleanSplit(sbuser.Projects, ",")
@@ -102,12 +102,12 @@ func checkAccess(user *user.User, pkey string, ctx context.Context, w *http.Resp
 			return true
 		}
 	}
-	check_access_failed(nil, ctx, w, r, user)
+	checkAccessFailed(ctx, nil, w, r, user)
 	return false
 }
 
-// check_access_failed displays an error message when a project cannot be accessed.
-func check_access_failed(err *error, ctx context.Context, w *http.ResponseWriter, r *http.Request, user *user.User) {
+// checkAccessFailed displays an error message when a project cannot be accessed.
+func checkAccessFailed(ctx context.Context, err *error, w *http.ResponseWriter, r *http.Request, user *user.User) {
 
 	if err != nil {
 		msg := "A datastore error occured.  Ask the administrator to check the log for error details."

@@ -22,7 +22,7 @@ func viewComments(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -34,26 +34,24 @@ func viewComments(w http.ResponseWriter, r *http.Request) {
 		c.Time = c.DateTime.Format("3:04pm")
 	}
 
-	type TV struct {
+	tvals := struct {
 		User         string
 		LoggedIn     bool
 		PR           *Project
 		PV           *ProjectView
 		Pkey         string
 		Any_comments bool
+	}{
+		User:         user.String(),
+		LoggedIn:     user != nil,
+		PR:           PR,
+		PV:           PV,
+		Any_comments: len(PR.Comments) > 0,
+		Pkey:         pkey,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.PR = PR
-	template_values.PV = PV
-	template_values.Any_comments = len(PR.Comments) > 0
-	template_values.Pkey = pkey
-
-	if err := tmpl.ExecuteTemplate(w, "view_comments.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "View_comments: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "view_comments.html", tvals); err != nil {
+		log.Errorf(ctx, "ViewComments: %v", err)
 	}
 }
 
@@ -69,31 +67,29 @@ func addComment(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
 	proj, _ := getProjectFromKey(ctx, pkey)
-	PV := formatProject(proj)
+	fproj := formatProject(proj)
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
 		PR       *Project
 		PV       *ProjectView
 		Pkey     string
+	}{
+		User:     user.String(),
+		LoggedIn: user != nil,
+		PR:       proj,
+		PV:       fproj,
+		Pkey:     pkey,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.PR = proj
-	template_values.PV = PV
-	template_values.Pkey = pkey
-
-	if err := tmpl.ExecuteTemplate(w, "add_comment.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Add_comment: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "add_comment.html", tvals); err != nil {
+		log.Errorf(ctx, "addComment: %v", err)
 	}
 }
 
@@ -109,7 +105,7 @@ func confirmAddComment(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("pkey")
 
-	if ok := checkAccess(user, pkey, ctx, &w, r); !ok {
+	if ok := checkAccess(ctx, user, pkey, &w, r); !ok {
 		return
 	}
 
@@ -118,15 +114,15 @@ func confirmAddComment(w http.ResponseWriter, r *http.Request) {
 		msg := "Datastore error, unable to add comment."
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
-		log.Errorf(ctx, "Confirm_add_comment [1]: %v", err)
+		log.Errorf(ctx, "confirmAddComment [1]: %v", err)
 		return
 	}
 
-	comment_text := r.FormValue("comment_text")
-	comment_text = strings.TrimSpace(comment_text)
-	comment_lines := strings.Split(comment_text, "\n")
+	commentText := r.FormValue("comment_text")
+	commentText = strings.TrimSpace(commentText)
+	commentLines := strings.Split(commentText, "\n")
 
-	if len(comment_text) == 0 {
+	if len(commentText) == 0 {
 		msg := "No comment was entered."
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -140,7 +136,7 @@ func confirmAddComment(w http.ResponseWriter, r *http.Request) {
 	t := comment.DateTime.In(loc)
 	comment.Date = t.Format("2006-1-2")
 	comment.Time = t.Format("3:04pm")
-	comment.Comment = comment_lines
+	comment.Comment = commentLines
 	proj.Comments = append(proj.Comments, comment)
 
 	storeProject(ctx, proj, pkey)

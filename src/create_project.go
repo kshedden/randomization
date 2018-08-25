@@ -13,8 +13,8 @@ import (
 	"google.golang.org/appengine/user"
 )
 
-// CreateProjectStep1 gets the project name from the user.
-func CreateProjectStep1(w http.ResponseWriter, r *http.Request) {
+// createProjectStep1 gets the project name from the user.
+func createProjectStep1(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "GET" {
 		Serve404(w)
@@ -24,23 +24,21 @@ func CreateProjectStep1(w http.ResponseWriter, r *http.Request) {
 	ctx := appengine.NewContext(r)
 	user := user.Current(ctx)
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
+	}{
+		User:     user.String(),
+		LoggedIn: user != nil,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step1.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step1.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep1 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep2 asks if the subject-level data are to be logged.
-func CreateProjectStep2(w http.ResponseWriter, r *http.Request) {
+// createProjectStep2 asks if the subject-level data are to be logged.
+func createProjectStep2(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -55,39 +53,38 @@ func CreateProjectStep2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := user.Current(ctx)
-	project_name := r.FormValue("project_name")
+	projectName := r.FormValue("project_name")
 
 	// Check if the project name has already been used.
-	pkey := user.String() + "::" + project_name
+	pkey := user.String() + "::" + projectName
 	key := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
 	var pr EncodedProject
 	err := datastore.Get(ctx, key, &pr)
 	if err == nil {
-		msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", project_name, user.String())
+		msg := fmt.Sprintf("A project named \"%s\" belonging to user %s already exists.", projectName, user.String())
 		rmsg := "Return to dashboard"
 		messagePage(w, r, user, msg, rmsg, "/dashboard")
 		return
 	}
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
 		Name     string
 		Pkey     string
+	}{
+		User:     user.String(),
+		LoggedIn: user != nil,
+		Name:     r.FormValue("project_name"),
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step2.html", template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step2.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep2 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep3 gets the number of treatment groups.
-func CreateProjectStep3(w http.ResponseWriter, r *http.Request) {
+// createProjectStep3 gets the number of treatment groups.
+func createProjectStep3(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -103,28 +100,26 @@ func CreateProjectStep3(w http.ResponseWriter, r *http.Request) {
 
 	user := user.Current(ctx)
 
-	type TV struct {
+	tvals := struct {
 		User         string
 		LoggedIn     bool
 		Name         string
 		Pkey         string
 		StoreRawData bool
+	}{
+		User:         user.String(),
+		LoggedIn:     user != nil,
+		Name:         r.FormValue("project_name"),
+		StoreRawData: r.FormValue("store_rawdata") == "yes",
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "yes"
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step3.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step3.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep3 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep4
-func CreateProjectStep4(w http.ResponseWriter, r *http.Request) {
+// createProjectStep4
+func createProjectStep4(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -142,7 +137,13 @@ func CreateProjectStep4(w http.ResponseWriter, r *http.Request) {
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
-	type TV struct {
+	// Group numbers (they don't have names yet)
+	IX := make([]int, numgroups, numgroups)
+	for i := 0; i < numgroups; i++ {
+		IX[i] = i + 1
+	}
+
+	tvals := struct {
 		User         string
 		LoggedIn     bool
 		Name         string
@@ -150,29 +151,22 @@ func CreateProjectStep4(w http.ResponseWriter, r *http.Request) {
 		StoreRawData bool
 		NumGroups    int
 		IX           []int
+	}{
+		User:         user.String(),
+		LoggedIn:     user != nil,
+		Name:         r.FormValue("project_name"),
+		StoreRawData: r.FormValue("store_rawdata") == "true",
+		IX:           IX,
+		NumGroups:    numgroups,
 	}
 
-	// Group numbers (they don't have names yet)
-	IX := make([]int, numgroups, numgroups)
-	for i := 0; i < numgroups; i++ {
-		IX[i] = i + 1
-	}
-
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
-	template_values.IX = IX
-	template_values.NumGroups = numgroups
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step4.html", template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step4.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep4 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep5
-func CreateProjectStep5(w http.ResponseWriter, r *http.Request) {
+// createProjectStep5
+func createProjectStep5(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -187,18 +181,6 @@ func CreateProjectStep5(w http.ResponseWriter, r *http.Request) {
 	}
 
 	user := user.Current(ctx)
-
-	type TV struct {
-		User           string
-		LoggedIn       bool
-		Name           string
-		Pkey           string
-		GroupNames     string
-		GroupNames_arr []string
-		StoreRawData   bool
-		NumGroups      int
-		IX             []int
-	}
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
@@ -214,24 +196,34 @@ func CreateProjectStep5(w http.ResponseWriter, r *http.Request) {
 		GroupNames[i] = r.FormValue(fmt.Sprintf("name%d", i+1))
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.GroupNames = strings.Join(GroupNames, ",")
-	template_values.GroupNames_arr = GroupNames
-	template_values.NumGroups = len(GroupNames)
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
-	template_values.IX = IX
+	tvals := struct {
+		User           string
+		LoggedIn       bool
+		Name           string
+		Pkey           string
+		GroupNames     string
+		GroupNames_arr []string
+		StoreRawData   bool
+		NumGroups      int
+		IX             []int
+	}{
+		User:           user.String(),
+		LoggedIn:       user != nil,
+		Name:           r.FormValue("project_name"),
+		GroupNames:     strings.Join(GroupNames, ","),
+		GroupNames_arr: GroupNames,
+		NumGroups:      len(GroupNames),
+		StoreRawData:   r.FormValue("store_rawdata") == "true",
+		IX:             IX,
+	}
 
-	if err := tmpl.ExecuteTemplate(w, "create_project_step5.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step5.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep5 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep6
-func CreateProjectStep6(w http.ResponseWriter, r *http.Request) {
+// createProjectStep6
+func createProjectStep6(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -247,26 +239,15 @@ func CreateProjectStep6(w http.ResponseWriter, r *http.Request) {
 
 	user := user.Current(ctx)
 
-	type TV struct {
-		User          string
-		LoggedIn      bool
-		Name          string
-		Pkey          string
-		GroupNames    string
-		StoreRawData  bool
-		SamplingRates string
-		NumGroups     int
-	}
-
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	// Get the sampling rates from the previous page
-	group_names_arr := cleanSplit(r.FormValue("group_names"), ",")
-	sampling_rates := make([]string, numgroups, numgroups)
+	groupNamesArr := cleanSplit(r.FormValue("group_names"), ",")
+	samplingRates := make([]string, numgroups, numgroups)
 	for i := 0; i < numgroups; i++ {
-		sampling_rates[i] = r.FormValue(fmt.Sprintf("rate%s", group_names_arr[i]))
+		samplingRates[i] = r.FormValue(fmt.Sprintf("rate%s", groupNamesArr[i]))
 
-		x, err := strconv.ParseFloat(sampling_rates[i], 64)
+		x, err := strconv.ParseFloat(samplingRates[i], 64)
 		if (err != nil) || (x <= 0) {
 			msg := "The sampling rates must be positive numbers."
 			rmsg := "Return to dashboard"
@@ -275,23 +256,32 @@ func CreateProjectStep6(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.GroupNames = r.FormValue("group_names")
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
-	template_values.SamplingRates = strings.Join(sampling_rates, ",")
-	template_values.NumGroups = numgroups
+	tvals := struct {
+		User          string
+		LoggedIn      bool
+		Name          string
+		Pkey          string
+		GroupNames    string
+		StoreRawData  bool
+		SamplingRates string
+		NumGroups     int
+	}{
+		User:          user.String(),
+		LoggedIn:      user != nil,
+		Name:          r.FormValue("project_name"),
+		GroupNames:    r.FormValue("group_names"),
+		StoreRawData:  r.FormValue("store_rawdata") == "true",
+		SamplingRates: strings.Join(samplingRates, ","),
+		NumGroups:     numgroups,
+	}
 
-	if err := tmpl.ExecuteTemplate(w, "create_project_step6.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step6.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep6 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep7
-func CreateProjectStep7(w http.ResponseWriter, r *http.Request) {
+// createProjectStep7
+func createProjectStep7(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -310,7 +300,12 @@ func CreateProjectStep7(w http.ResponseWriter, r *http.Request) {
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
 
-	type TV struct {
+	IX := make([]int, numvar, numvar)
+	for i := 0; i < numvar; i++ {
+		IX[i] = i + 1
+	}
+
+	tvals := struct {
 		User          string
 		LoggedIn      bool
 		Name          string
@@ -322,34 +317,28 @@ func CreateProjectStep7(w http.ResponseWriter, r *http.Request) {
 		NumVar        int
 		Any_vars      bool
 		SamplingRates string
+	}{
+		User:          user.String(),
+		LoggedIn:      user != nil,
+		Name:          r.FormValue("project_name"),
+		GroupNames:    r.FormValue("group_names"),
+		IX:            IX,
+		NumGroups:     numgroups,
+		NumVar:        numvar,
+		Any_vars:      (numvar > 0),
+		StoreRawData:  r.FormValue("store_rawdata") == "true",
+		SamplingRates: r.FormValue("rates"),
 	}
 
-	IX := make([]int, numvar, numvar)
-
-	for i := 0; i < numvar; i++ {
-		IX[i] = i + 1
-	}
-
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.GroupNames = r.FormValue("group_names")
-	template_values.IX = IX
-	template_values.NumGroups = numgroups
-	template_values.NumVar = numvar
-	template_values.Any_vars = (numvar > 0)
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
-	template_values.SamplingRates = r.FormValue("rates")
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step7.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step7.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep7 failed to execute template: %v", err)
 	}
 }
 
-func process_variable_info(r *http.Request, numvar int) (string, bool) {
+func processVariableInfo(r *http.Request, numvar int) (string, bool) {
+
 	variables := make([]string, numvar, numvar)
+
 	for i := 0; i < numvar; i++ {
 		vec := make([]string, 4)
 
@@ -375,11 +364,12 @@ func process_variable_info(r *http.Request, numvar int) (string, bool) {
 		vec[3] = r.FormValue(fmt.Sprintf("func%d", i+1))
 		variables[i] = strings.Join(vec, ";")
 	}
+
 	return strings.Join(variables, ":"), true
 }
 
-// CreateProjectStep8
-func CreateProjectStep8(w http.ResponseWriter, r *http.Request) {
+// createProjectStep8
+func createProjectStep8(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -396,14 +386,19 @@ func CreateProjectStep8(w http.ResponseWriter, r *http.Request) {
 
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
-	variables, ok := process_variable_info(r, numvar)
+	variables, ok := processVariableInfo(r, numvar)
 
 	if !ok {
-		validation_error_step8(w, r)
+		validationErrorStep8(w, r)
 		return
 	}
 
-	type TV struct {
+	IX := make([]int, numvar, numvar)
+	for i := 0; i < numvar; i++ {
+		IX[i] = i + 1
+	}
+
+	tvals := struct {
 		User          string
 		LoggedIn      bool
 		Name          string
@@ -415,35 +410,27 @@ func CreateProjectStep8(w http.ResponseWriter, r *http.Request) {
 		Numvar        int
 		Variables     string
 		SamplingRates string
+	}{
+		User:          user.String(),
+		LoggedIn:      user != nil,
+		Name:          r.FormValue("project_name"),
+		GroupNames:    r.FormValue("group_names"),
+		IX:            IX,
+		NumGroups:     numgroups,
+		Numvar:        numvar,
+		Variables:     variables,
+		StoreRawData:  r.FormValue("store_rawdata") == "true",
+		SamplingRates: r.FormValue("rates"),
 	}
 
-	IX := make([]int, numvar, numvar)
-
-	for i := 0; i < numvar; i++ {
-		IX[i] = i + 1
-	}
-
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.GroupNames = r.FormValue("group_names")
-	template_values.IX = IX
-	template_values.NumGroups = numgroups
-	template_values.Numvar = numvar
-	template_values.Variables = variables
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
-	template_values.SamplingRates = r.FormValue("rates")
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step8.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step8.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep8 failed to execute template: %v", err)
 	}
 }
 
-// CreateProjectStep9 creates the project using all supplied
+// createProjectStep9 creates the project using all supplied
 // information, and stores the project in the database.
-func CreateProjectStep9(w http.ResponseWriter, r *http.Request) {
+func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -461,7 +448,7 @@ func CreateProjectStep9(w http.ResponseWriter, r *http.Request) {
 
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
 	GroupNames := r.FormValue("group_names")
-	project_name := r.FormValue("project_name")
+	projectName := r.FormValue("project_name")
 	variables := r.FormValue("variables")
 	VL := cleanSplit(variables, ":")
 	bias, _ := strconv.Atoi(r.FormValue("bias"))
@@ -482,7 +469,7 @@ func CreateProjectStep9(w http.ResponseWriter, r *http.Request) {
 	var project Project
 	project.Owner = user.String()
 	project.Created = time.Now()
-	project.Name = project_name
+	project.Name = projectName
 	project.Variables = VA
 	project.Bias = bias
 	project.GroupNames = cleanSplit(GroupNames, ",")
@@ -492,25 +479,25 @@ func CreateProjectStep9(w http.ResponseWriter, r *http.Request) {
 
 	// Convert the rates to numbers
 	rates = r.FormValue("rates")
-	rates_arr := cleanSplit(rates, ",")
-	rates_num := make([]float64, len(rates_arr))
-	for i, x := range rates_arr {
-		rates_num[i], _ = strconv.ParseFloat(x, 64)
+	ratesArr := cleanSplit(rates, ",")
+	ratesNum := make([]float64, len(ratesArr))
+	for i, x := range ratesArr {
+		ratesNum[i], _ = strconv.ParseFloat(x, 64)
 	}
-	project.SamplingRates = rates_num
+	project.SamplingRates = ratesNum
 
 	// Set up the data.
 	numgroups := len(project.GroupNames)
 	data0 := make([][][]float64, len(project.Variables))
 	for j, va := range project.Variables {
 		data0[j] = make([][]float64, len(va.Levels))
-		for k, _ := range va.Levels {
+		for k := range va.Levels {
 			data0[j][k] = make([]float64, numgroups)
 		}
 	}
 	project.Data = data0
 
-	pkey := user.String() + "::" + project_name
+	pkey := user.String() + "::" + projectName
 	dkey := datastore.NewKey(ctx, "EncodedProject", pkey, 0, nil)
 	eproj, err := encodeProject(&project)
 	if err != nil {
@@ -532,23 +519,20 @@ func CreateProjectStep9(w http.ResponseWriter, r *http.Request) {
 		log.Errorf(ctx, "Create_project_step9 [3]: %v", err)
 	}
 
-	type TV struct {
+	tvals := struct {
 		User     string
 		LoggedIn bool
+	}{
+		User:     user.String(),
+		LoggedIn: user != nil,
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-
-	if err := tmpl.ExecuteTemplate(w, "create_project_step9.html",
-		template_values); err != nil {
-		log.Errorf(ctx, "Failed to execute template: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "create_project_step9.html", tvals); err != nil {
+		log.Errorf(ctx, "createProjectStep9 failed to execute template: %v", err)
 	}
 }
 
-func validation_error_step8(w http.ResponseWriter,
-	r *http.Request) {
+func validationErrorStep8(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != "POST" {
 		Serve404(w)
@@ -564,7 +548,17 @@ func validation_error_step8(w http.ResponseWriter,
 		return
 	}
 
-	type TV struct {
+	numgroups, err := strconv.Atoi(r.FormValue("numgroups"))
+	if err != nil {
+		log.Errorf(ctx, "validationErrorStep8: %v", err)
+	}
+
+	numvar, err := strconv.Atoi(r.FormValue("numvar"))
+	if err != nil {
+		log.Errorf(ctx, "validationErrorStep8: %v", err)
+	}
+
+	tvals := struct {
 		User          string
 		LoggedIn      bool
 		Name          string
@@ -574,20 +568,18 @@ func validation_error_step8(w http.ResponseWriter,
 		StoreRawData  bool
 		Numvar        int
 		SamplingRates string
+	}{
+		User:          user.String(),
+		LoggedIn:      user != nil,
+		Name:          r.FormValue("project_name"),
+		GroupNames:    r.FormValue("group_names"),
+		NumGroups:     numgroups,
+		Numvar:        numvar,
+		StoreRawData:  r.FormValue("store_rawdata") == "true",
+		SamplingRates: r.FormValue("rates"),
 	}
 
-	template_values := new(TV)
-	template_values.User = user.String()
-	template_values.LoggedIn = user != nil
-	template_values.Name = r.FormValue("project_name")
-	template_values.GroupNames = r.FormValue("group_names")
-	template_values.NumGroups, _ = strconv.Atoi(r.FormValue("numgroups"))
-	template_values.Numvar, _ = strconv.Atoi(r.FormValue("numvar"))
-	template_values.StoreRawData = r.FormValue("store_rawdata") == "true"
-	template_values.SamplingRates = r.FormValue("rates")
-
-	if err := tmpl.ExecuteTemplate(w, "validation_error_step8.html",
-		template_values); err != nil {
+	if err := tmpl.ExecuteTemplate(w, "validation_error_step8.html", tvals); err != nil {
 		log.Errorf(ctx, "Failed to execute template: %v", err)
 	}
 }
