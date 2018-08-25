@@ -61,7 +61,6 @@ func deleteProjectStep2(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := appengine.NewContext(r)
-
 	user := user.Current(ctx)
 
 	if err := r.ParseForm(); err != nil {
@@ -106,6 +105,13 @@ func deleteProjectStep3(w http.ResponseWriter, r *http.Request) {
 	user := user.Current(ctx)
 	pkey := r.FormValue("Pkey")
 
+	if !checkAccess(ctx, user, pkey, &w, r) {
+		msg := "You do not have access to this project."
+		rmsg := "Return"
+		messagePage(w, r, user, msg, rmsg, "/")
+		return
+	}
+
 	if err := r.ParseForm(); err != nil {
 		log.Errorf(ctx, "deleteProjectStep3 [1]: %v", err)
 		ServeError(ctx, w, err)
@@ -117,7 +123,7 @@ func deleteProjectStep3(w http.ResponseWriter, r *http.Request) {
 	// SharingByUsers records.
 	key := datastore.NewKey(ctx, "SharingByProject", pkey, 0, nil)
 	var sbproj SharingByProject
-	sharedWith := make([]string, 0)
+	var sharedWith []string
 	err := datastore.Get(ctx, key, &sbproj)
 	if err == datastore.ErrNoSuchEntity {
 		log.Errorf(ctx, "deleteProjectStep3 [2]: %v", err)
