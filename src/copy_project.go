@@ -131,5 +131,4 @@ func copyProjectCompleted(w http.ResponseWriter, r *http.Request) {
 	msg := "The project has been successfully copied."
 	rmsg := "Return to dashboard"
 	messagePage(w, r, user, msg, rmsg, "/dashboard")
-	return
 }

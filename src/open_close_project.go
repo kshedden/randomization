@@ -113,5 +113,10 @@ func openCloseCompleted(w http.ResponseWriter, r *http.Request) {
 		proj.Open = false
 	}
 
-	storeProject(ctx, proj, pkey)
+	err = storeProject(ctx, proj, pkey)
+	if err != nil {
+		msg := "Error, the project was not stored."
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
+	}
 }

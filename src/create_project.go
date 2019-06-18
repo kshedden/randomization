@@ -138,7 +138,7 @@ func createProjectStep4(w http.ResponseWriter, r *http.Request) {
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	// Group numbers (they don't have names yet)
-	IX := make([]int, numgroups, numgroups)
+	IX := make([]int, numgroups)
 	for i := 0; i < numgroups; i++ {
 		IX[i] = i + 1
 	}
@@ -185,13 +185,13 @@ func createProjectStep5(w http.ResponseWriter, r *http.Request) {
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 
 	// Indices for the groups
-	ix := make([]int, numgroups, numgroups)
+	ix := make([]int, numgroups)
 	for i := 0; i < numgroups; i++ {
 		ix[i] = i
 	}
 
 	// Get the group names from the previous page
-	GroupNames := make([]string, numgroups, numgroups)
+	GroupNames := make([]string, numgroups)
 	for i := 0; i < numgroups; i++ {
 		GroupNames[i] = r.FormValue(fmt.Sprintf("name%d", i+1))
 	}
@@ -249,7 +249,7 @@ func createProjectStep6(w http.ResponseWriter, r *http.Request) {
 
 	// Get the sampling rates from the previous page
 	groupNamesArr := cleanSplit(r.FormValue("group_names"), ",")
-	samplingRates := make([]string, numgroups, numgroups)
+	samplingRates := make([]string, numgroups)
 	for i := 0; i < numgroups; i++ {
 
 		samplingRates[i] = r.FormValue(fmt.Sprintf("rate%s", groupNamesArr[i]))
@@ -312,7 +312,7 @@ func createProjectStep7(w http.ResponseWriter, r *http.Request) {
 	numgroups, _ := strconv.Atoi(r.FormValue("numgroups"))
 	numvar, _ := strconv.Atoi(r.FormValue("numvar"))
 
-	ix := make([]int, numvar, numvar)
+	ix := make([]int, numvar)
 	for i := 0; i < numvar; i++ {
 		ix[i] = i + 1
 	}
@@ -349,7 +349,7 @@ func createProjectStep7(w http.ResponseWriter, r *http.Request) {
 
 func processVariableInfo(r *http.Request, numvar int) (string, bool) {
 
-	variables := make([]string, numvar, numvar)
+	variables := make([]string, numvar)
 
 	for i := 0; i < numvar; i++ {
 		vec := make([]string, 4)
@@ -412,7 +412,7 @@ func createProjectStep8(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ix := make([]int, numvar, numvar)
+	ix := make([]int, numvar)
 	for i := 0; i < numvar; i++ {
 		ix[i] = i + 1
 	}
@@ -474,7 +474,6 @@ func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 	projectName := r.FormValue("project_name")
 	variables := r.FormValue("variables")
 	VL := cleanSplit(variables, ":")
-	rates := r.FormValue("rates")
 
 	bias, err := strconv.Atoi(r.FormValue("bias"))
 	if err != nil {
@@ -482,7 +481,7 @@ func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse and validate the variable information.
-	VA := make([]Variable, numvar, numvar)
+	VA := make([]Variable, numvar)
 	for i, vl := range VL {
 		vx := cleanSplit(vl, ";")
 		var va Variable
@@ -510,7 +509,7 @@ func createProjectStep9(w http.ResponseWriter, r *http.Request) {
 	project.Open = true
 
 	// Convert the rates to numbers
-	rates = r.FormValue("rates")
+	rates := r.FormValue("rates")
 	ratesArr := cleanSplit(rates, ",")
 	ratesNum := make([]float64, len(ratesArr))
 	for i, x := range ratesArr {

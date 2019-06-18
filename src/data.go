@@ -255,7 +255,10 @@ func getProjectFromKey(ctx context.Context, pkey string) (*Project, error) {
 		return nil, err
 	}
 
-	project := decodeProject(&eproj)
+	project, err := decodeProject(&eproj)
+	if err != nil {
+		return nil, err
+	}
 
 	// This field was added later, so may be missing on some
 	// projects.  Provide a default here.
@@ -344,7 +347,7 @@ func storeProject(ctx context.Context, proj *Project, projectKey string) error {
 
 // decodeProject takes a project in its encoded form (storable in the
 // datastore) and converts it to a Project struct.
-func decodeProject(eproj *EncodedProject) *Project {
+func decodeProject(eproj *EncodedProject) (*Project, error) {
 
 	proj := new(Project)
 
@@ -353,7 +356,10 @@ func decodeProject(eproj *EncodedProject) *Project {
 	proj.Name = eproj.Name
 
 	var data [][][]float64
-	json.Unmarshal(eproj.Data, &data)
+	err := json.Unmarshal(eproj.Data, &data)
+	if err != nil {
+		return nil, err
+	}
 	proj.Data = data
 
 	proj.Assignments = eproj.Assignments
@@ -366,24 +372,36 @@ func decodeProject(eproj *EncodedProject) *Project {
 	proj.SamplingRates = eproj.SamplingRates
 
 	var groupNames []string
-	json.Unmarshal(eproj.GroupNames, &groupNames)
+	err = json.Unmarshal(eproj.GroupNames, &groupNames)
+	if err != nil {
+		return nil, err
+	}
 	proj.GroupNames = groupNames
 
 	var vbls []Variable
-	json.Unmarshal(eproj.Variables, &vbls)
+	err = json.Unmarshal(eproj.Variables, &vbls)
+	if err != nil {
+		return nil, err
+	}
 	proj.Variables = vbls
 
 	var comments []*Comment
-	json.Unmarshal(eproj.Comments, &comments)
+	err = json.Unmarshal(eproj.Comments, &comments)
+	if err != nil {
+		return nil, err
+	}
 	proj.Comments = comments
 
 	if eproj.StoreRawData {
 		var rawdata []*DataRecord
-		json.Unmarshal(eproj.RawData, &rawdata)
+		err := json.Unmarshal(eproj.RawData, &rawdata)
+		if err != nil {
+			return nil, err
+		}
 		proj.RawData = rawdata
 	}
 
-	return proj
+	return proj, nil
 }
 
 // formatProject returns a ProjectView object corresponding to the
@@ -428,7 +446,7 @@ func formatProject(project *Project) *ProjectView {
 
 // formatEncodedProject returns an EncodedProjectView object
 // corresponding to the given Encoded_project object.
-func formatEncodedProject(encProject *EncodedProject) *EncodedProjectView {
+func formatEncodedProject(encProject *EncodedProject) (*EncodedProjectView, error) {
 
 	view := new(EncodedProjectView)
 	view.Owner = encProject.Owner
@@ -440,7 +458,10 @@ func formatEncodedProject(encProject *EncodedProject) *EncodedProjectView {
 	view.NumAssignments = encProject.NumAssignments
 
 	var s []string
-	json.Unmarshal(encProject.GroupNames, &s)
+	err := json.Unmarshal(encProject.GroupNames, &s)
+	if err != nil {
+		return nil, err
+	}
 	view.GroupNames = s
 
 	view.RemovedSubjects = encProject.RemovedSubjects
@@ -472,7 +493,7 @@ func formatEncodedProject(encProject *EncodedProject) *EncodedProjectView {
 		view.ModifiedTime = t.Format("3:04pm")
 	}
 
-	return view
+	return view, nil
 }
 
 // formatEncodedProject returns an array of EncodedProjectView
@@ -482,35 +503,11 @@ func formatEncodedProjects(proj []*EncodedProject) []*EncodedProjectView {
 
 	var fpr []*EncodedProjectView
 	for _, pr := range proj {
-		fpr = append(fpr, formatEncodedProject(pr))
+		fp, _ := formatEncodedProject(pr)
+		fpr = append(fpr, fp)
 	}
 
 	return fpr
-}
-
-// formatProjects
-func formatProjects(projects []*Project) []*ProjectView {
-
-	var fpr []*ProjectView
-	for _, pr := range projects {
-		fpr = append(fpr, formatProject(pr))
-	}
-
-	return fpr
-}
-
-// formatVariables returns an array of VariableView objects
-// corresponding to the given array of Variable objects.
-func formatVariables(val []Variable) []VariableView {
-
-	valf := make([]VariableView, len(val))
-
-	for i, va := range val {
-		valf[i] = formatVariable(va)
-		valf[i].Index = i
-	}
-
-	return valf
 }
 
 // formatVariable returns a VariableView object corresponding to the
@@ -781,14 +778,14 @@ func getProjects(ctx context.Context, user string, includeShared bool) ([]*datas
 func Serve404(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusNotFound)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(w, "Not Found")
+	_, _ = io.WriteString(w, "Not Found")
 }
 
 func ServeError(ctx context.Context, w http.ResponseWriter, err error) {
 
 	w.WriteHeader(http.StatusInternalServerError)
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	io.WriteString(w, "Internal Server Error")
+	_, _ = io.WriteString(w, "Internal Server Error")
 	log.Errorf(ctx, "ServeError [1]: %v", err)
 }
 

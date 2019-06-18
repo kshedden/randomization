@@ -43,7 +43,7 @@ func assignTreatmentInput(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if PR.Open == false {
+	if !PR.Open {
 		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -82,7 +82,7 @@ func assignTreatmentInput(w http.ResponseWriter, r *http.Request) {
 
 func checkBeforeAssigning(proj *Project, pkey string, subjectId string, user *user.User, w http.ResponseWriter, r *http.Request) bool {
 
-	if proj.Open == false {
+	if !proj.Open {
 		msg := "This project is currently not open for new enrollments.  The project owner can change this by following the \"Open/close enrollment\" link on the project dashboard."
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)

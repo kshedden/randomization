@@ -74,8 +74,7 @@ func editSharingConfirm(w http.ResponseWriter, r *http.Request) {
 	projectName := spkey[1]
 
 	ap := r.FormValue("additional_people")
-	addUsers := []string{}
-	addUsers = cleanSplit(ap, ",")
+	addUsers := cleanSplit(ap, ",")
 	for k, x := range addUsers {
 		addUsers[k] = strings.ToLower(x)
 	}
@@ -101,8 +100,7 @@ func editSharingConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var err error
-	err = addSharing(ctx, pkey, addUsers)
+	err := addSharing(ctx, pkey, addUsers)
 	if err != nil {
 		msg := "Datastore error: unable to update sharing information."
 		rmsg := "Return to dashboard"

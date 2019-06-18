@@ -42,7 +42,7 @@ func removeSubject(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if proj.StoreRawData == false {
+	if !proj.StoreRawData {
 		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -121,7 +121,7 @@ func removeSubjectConfirm(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
-	if found == false {
+	if !found {
 		msg := fmt.Sprintf("There is no subject with id '%s' in the project.", subjectId)
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -181,7 +181,7 @@ func removeSubjectCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if proj.StoreRawData == false {
+	if !proj.StoreRawData {
 		msg := "Subjects cannot be removed for a project in which the subject level data is not stored"
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -206,7 +206,7 @@ func removeSubjectCompleted(w http.ResponseWriter, r *http.Request) {
 	comment.Comment = []string{fmt.Sprintf("Subject '%s' removed from the project.", subjectId)}
 	proj.Comments = append(proj.Comments, comment)
 
-	if found == false {
+	if !found {
 		msg := fmt.Sprintf("Unable to remove subject '%s' from the project.", subjectId)
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -215,7 +215,13 @@ func removeSubjectCompleted(w http.ResponseWriter, r *http.Request) {
 
 	removeFromAggregate(removeRec, proj)
 	proj.NumAssignments--
-	storeProject(ctx, proj, pkey)
+	err = storeProject(ctx, proj, pkey)
+	if err != nil {
+		msg := "Error, unable to save project."
+		rmsg := "Return to project dashboard"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
 	msg := fmt.Sprintf("Subject '%s' has been removed from the study.", subjectId)
 	rmsg := "Return to project dashboard"

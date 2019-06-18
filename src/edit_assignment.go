@@ -52,7 +52,7 @@ func editAssignment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if proj.StoreRawData == false {
+	if !proj.StoreRawData {
 		msg := "Group assignments cannot be edited for a project in which the subject level data is not stored"
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -113,7 +113,7 @@ func editAssignmentConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if proj.StoreRawData == false {
+	if !proj.StoreRawData {
 		msg := "Assignments cannot be edited in a project in which the subject level data is not stored"
 		rmsg := "Return to project dashboard"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -200,7 +200,7 @@ func editAssignmentCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if proj.StoreRawData == false {
+	if !proj.StoreRawData {
 		msg := "Group assignments cannot be edited in a project in which the subject level data is not stored."
 		rmsg := "Return to project"
 		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
@@ -236,7 +236,13 @@ func editAssignmentCompleted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	storeProject(ctx, proj, pkey)
+	err = storeProject(ctx, proj, pkey)
+	if err != nil {
+		msg := "Error, your project was not saved."
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
 	msg := "The assignment has been changed."
 	rmsg := "Return to project"

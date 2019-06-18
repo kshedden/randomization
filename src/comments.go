@@ -139,7 +139,13 @@ func confirmAddComment(w http.ResponseWriter, r *http.Request) {
 	comment.Comment = commentLines
 	proj.Comments = append(proj.Comments, comment)
 
-	storeProject(ctx, proj, pkey)
+	err = storeProject(ctx, proj, pkey)
+	if err != nil {
+		msg := "Error, your project was not saved."
+		rmsg := "Return to project"
+		messagePage(w, r, user, msg, rmsg, "/project_dashboard?pkey="+pkey)
+		return
+	}
 
 	msg := "Your comment has been added to the project."
 	rmsg := "Return to project"
